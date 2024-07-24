@@ -20,7 +20,7 @@ from sklearn.tree import DecisionTreeClassifier
 
 def choose_model_and_metric():
     print(
-        "This script trains a model to predict the survival of passengers on the Titanic.\n"
+        "\nThis script trains a model to predict the survival of passengers on the Titanic.\n"
     )
 
     print("What metric is most important to you?")
@@ -96,7 +96,7 @@ def get_valid_threshold(prompt):
 
 
 def preprocess_data(model, metric):
-    train_df = pd.read_csv("../input/train.csv")
+    train_df = pd.read_csv("input/train.csv")
     selected_columns = train_df.drop(
         ["Name", "SibSp", "Parch", "Ticket", "Fare", "Cabin", "Embarked"], axis=1
     )
