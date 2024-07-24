@@ -1,22 +1,75 @@
+import matplotlib.pyplot as plt
 import pandas as pd  # load the data, statistics
 import seaborn as sns  # visualize the data
-
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
+    ConfusionMatrixDisplay,
     accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
     precision_score,
     recall_score,
-    f1_score,
-    confusion_matrix,
-    ConfusionMatrixDisplay,
-    precision_recall_curve,
 )
-import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.tree import DecisionTreeClassifier
+
+
+def choose_model_and_metric():
+    print(
+        "This script trains a model to predict the survival of passengers on the Titanic.\n"
+    )
+
+    print("What metric is most important to you?")
+    print("1. Accuracy")
+    print("2. Precision")
+    print("3. Recall")
+    print("4. All of the above")
+
+    while True:
+        choice = input("\nInput the number of your choice: ")
+        if choice == "1":
+            print("To optimize accuracy, I recommend using a Decision Tree Classifier.")
+            metric = "all"
+            break
+        elif choice == "2":
+            print(
+                "To optimize precision, I recommend using a Decision Tree Classifier."
+            )
+            metric = "precision"
+            break
+        elif choice == "3":
+            print("To optimize recall, I recommend using a Logistic Regression model.")
+            metric = "all"
+            break
+        elif choice == "4":
+            print(
+                "To optimize all metrics, I recommend using a Decision Tree Classifier."
+            )
+            metric = "all"
+            break
+        else:
+            print("Invalid choice. Please enter a number between 1 and 4.")
+
+    print("\nWhat model would you like to use?")
+    print("1. Decision tree classifier")
+    print("2. Logistic regression")
+
+    while True:
+        model_choice = input("\nInput the number of your choice: ")
+        if model_choice == "1":
+            model = "dt"
+            break
+        elif model_choice == "2":
+            model = "lr"
+            break
+        else:
+            print("Invalid choice. Please enter 1 or 2.")
+
+    return model, metric
 
 
 def get_valid_input(prompt, valid_options):
@@ -42,155 +95,122 @@ def get_valid_threshold(prompt):
             print("Invalid input. Please enter a float between 0 and 1.")
 
 
-# Choose Specifications
-print(
-    "This script trains a model to predict the survival of passengers on the Titanic.\n"
-)
+def preprocess_data(model, metric):
+    train_df = pd.read_csv("../input/train.csv")
+    selected_columns = train_df.drop(
+        ["Name", "SibSp", "Parch", "Ticket", "Fare", "Cabin", "Embarked"], axis=1
+    )
+    selected_columns["Sex"] = LabelEncoder().fit_transform(selected_columns["Sex"])
+    preprocessor = ColumnTransformer(
+        transformers=[("pclass", OneHotEncoder(drop="first"), ["Pclass"])],
+        remainder="passthrough",
+    )
 
-print("What metric is most important to you?")
-print("1. Accuracy")
-print("2. Precision")
-print("3. Recall")
-print("4. All of the above")
-
-while True:
-    choice = input("\nInput the number of your choice: ")
-    if choice == "1":
-        print("To optimize accuracy, I recommend using a Decision Tree Classifier.")
-        metric = "all"
-        break
-    elif choice == "2":
-        print("To optimize precision, I recommend using a Decision Tree Classifier.")
-        metric = "precision"
-        break
-    elif choice == "3":
-        print("To optimize recall, I recommend using a Logistic Regression model.")
-        metric = "all"
-        break
-    elif choice == "4":
-        print("To optimize all metrics,I recommend using a Decision Tree Classifier.")
-        metric = "all"
-        break
+    if model == "lr" or metric == "precision":
+        selected_columns["<10 yrs"] = train_df["Age"].apply(
+            lambda x: 1 if x < 10 else 0
+        )
+        selected_columns[">60 yrs"] = train_df["Age"].apply(
+            lambda x: 1 if x > 60 else 0
+        )
+        X = selected_columns[["Sex", "Pclass", "<10 yrs", ">60 yrs"]]
     else:
-        print("Invalid choice. Please enter a number between 1 and 4.")
+        X = selected_columns[["Sex", "Pclass", "Age"]]
 
-print("\nWhat model would you like to use?")
-print("1. Decision tree classifier")
-print("2. Logistic regression")
+    y = selected_columns["Survived"]
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=3, stratify=y
+    )
+    return X_train, X_test, y_train, y_test, preprocessor
 
-while True:
-    model_choice = input("\nInput the number of your choice: ")
-    if model_choice == "1":
-        model = "dt"
-        break
-    elif model_choice == "2":
-        model = "lr"
-        break
+
+def train_model(X_train, y_train, preprocessor, model):
+    if model == "dt":
+        pipeline = Pipeline(
+            steps=[
+                ("preprocessor", preprocessor),
+                ("classifier", DecisionTreeClassifier()),
+            ]
+        )
     else:
-        print("Invalid choice. Please enter 1 or 2.")
+        pipeline = Pipeline(
+            steps=[("preprocessor", preprocessor), ("classifier", LogisticRegression())]
+        )
+
+    pipeline.fit(X_train, y_train)
+    return pipeline
 
 
-# end choose specifications
+def plot_graphs(y_test, probabilities):
+    precision, recall, thresholds = precision_recall_curve(y_test, probabilities)
 
-# preprocess data
-train_df = pd.read_csv("../input/train.csv")
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
 
-selected_columns = train_df.drop(
-    ["Name", "SibSp", "Parch", "Ticket", "Fare", "Cabin", "Embarked"], axis=1
-)
+    # Plot precision-recall curve
+    ax1.plot(recall, precision, marker=".", label="Decision Tree")
+    ax1.set_xlabel("Recall")
+    ax1.set_ylabel("Precision")
+    ax1.set_title("Precision-Recall Curve")
+    ax1.legend()
 
-# 1 is male, 2 is female
-selected_columns["Sex"] = LabelEncoder().fit_transform(selected_columns["Sex"])
-preprocessor = ColumnTransformer(
-    transformers=[("pclass", OneHotEncoder(drop="first"), ["Pclass"])],
-    remainder="passthrough",
-)
+    # Plot precision-recall vs threshold curve
+    ax2.plot(thresholds, precision[:-1], "b-", label="Precision")
+    ax2.plot(thresholds, recall[:-1], "r-", label="Recall")
+    ax2.set_xlabel("Threshold")
+    ax2.set_ylabel("Score")
+    ax2.set_title("Precision and Recall vs. Threshold")
+    ax2.legend()
+    ax2.grid(True)
 
-# Specializing for precision
-if model == "lr" or metric == "precision":
-    selected_columns["<10 yrs"] = train_df["Age"].apply(lambda x: 1 if x < 10 else 0)
-    selected_columns[">60 yrs"] = train_df["Age"].apply(lambda x: 1 if x > 60 else 0)
-    X = selected_columns[["Sex", "Pclass", "<10 yrs", ">60 yrs"]]
-else:
-    X = selected_columns[["Sex", "Pclass", "Age"]]
+    plt.tight_layout()
+    plt.show()
 
-y = selected_columns["Survived"]
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=3, stratify=y
-)
-# end preprocess data
 
-# train model
-if model == "dt":
-    pipeline = Pipeline(
-        steps=[("preprocessor", preprocessor), ("classifier", DecisionTreeClassifier())]
-    )
-else:
-    pipeline = Pipeline(
-        steps=[("preprocessor", preprocessor), ("classifier", LogisticRegression())]
-    )
+def choose_threshold(y_test, probabilities):
+    print("\nDo you want to choose a threshold for the model?")
+    choose_threshold = get_valid_input("(y/n): ", ["y", "n"])
 
-pipeline.fit(X_train, y_train)
-# end train model
+    if choose_threshold == "n":
+        print("\nThe model will use the default threshold of 0.5.")
+        return 0.5
+    else:
+        print(
+            "Would you like to see precision-recall curve to help you choose a threshold?"
+        )
+        show_graph = get_valid_input("(y/n): ", ["y", "n"])
 
-# evaluate model
-probabilities = pipeline.predict_proba(X_test)[:, 1]
+        if show_graph == "y":
+            plot_graphs(y_test, probabilities)
 
-# choose threshold
-print("\nDo you want to choose a threshold for the model?")
-choose_threshold = get_valid_input("(y/n): ", ["y", "n"])
+        return get_valid_threshold("Input the threshold: ")
 
-if choose_threshold == "n":
-    print("\nThe model will use the default threshold of 0.5.")
-    threshold = 0.5
-else:
-    print(
-        "Would you like to see precision-recall curve to help you choose a threshold?"
-    )
-    show_graph = get_valid_input("(y/n): ", ["y", "n"])
 
-    if show_graph == "y":
-        precision, recall, thresholds = precision_recall_curve(y_test, probabilities)
+def evaluate_model(y_test, probabilities, threshold):
+    predictions = (probabilities >= threshold).astype(int)
 
-        # Plot precision-recall curve
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
+    accuracy = accuracy_score(y_test, predictions)
+    precision = precision_score(y_test, predictions)
+    recall = recall_score(y_test, predictions)
+    f1 = f1_score(y_test, predictions)
+    cm = confusion_matrix(y_test, predictions)
 
-        # Plot precision-recall curve
-        ax1.plot(recall, precision, marker='.', label='Decision Tree')
-        ax1.set_xlabel('Recall')
-        ax1.set_ylabel('Precision')
-        ax1.set_title('Precision-Recall Curve')
-        ax1.legend()
+    print(f"\nThreshold: {threshold}")
+    print(f"Accuracy: {accuracy:.2f}")
+    print(f"Precision: {precision:.2f}")
+    print(f"Recall: {recall:.2f}")
+    print(f"F1: {f1:.2f}")
+    print("Confusion Matrix:")
+    print(cm)
 
-        # Plot precision-recall vs threshold curve
-        ax2.plot(thresholds, precision[:-1], 'b-', label='Precision')
-        ax2.plot(thresholds, recall[:-1], 'r-', label='Recall')
-        ax2.set_xlabel('Threshold')
-        ax2.set_ylabel('Score')
-        ax2.set_title('Precision and Recall vs. Threshold')
-        ax2.legend()
-        ax2.grid(True)
 
-        plt.tight_layout()
-        plt.show()
+def main():
+    model, metric = choose_model_and_metric()
+    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(model, metric)
+    pipeline = train_model(X_train, y_train, preprocessor, model)
+    probabilities = pipeline.predict_proba(X_test)[:, 1]
+    threshold = choose_threshold(y_test, probabilities)
+    evaluate_model(y_test, probabilities, threshold)
 
-    threshold = get_valid_threshold("Input the threshold: ")
 
-print(f"\nThreshold: {threshold}")
-
-predictions = (probabilities >= threshold).astype(int)
-
-accuracy = accuracy_score(y_test, predictions)
-precision = precision_score(y_test, predictions)
-recall = recall_score(y_test, predictions)
-f1 = f1_score(y_test, predictions)
-cm = confusion_matrix(y_test, predictions)
-
-print(f"Accuracy: {accuracy:.2f}")
-print(f"Precision: {precision:.2f}")
-print(f"Recall: {recall:.2f}")
-print(f"F1: {f1:.2f}")
-print("Confusion Matrix:")
-print(cm)
-
-# end evaluate model
+if __name__ == "__main__":
+    main()
