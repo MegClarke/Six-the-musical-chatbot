@@ -14,15 +14,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
-from typing import Tuple
 
 
-def choose_model_and_metric() -> Tuple[str, str]:
+def choose_model_and_metric() -> tuple[str, str]:
     """
     Prompts the user to choose a model and metric for training.
 
     Returns:
-        Tuple[str, str]: The chosen model and metric.
+        tuple[str, str]: The chosen model and metric.
     """
     print(
         "\nThis script trains a model to predict the survival of passengers on the Titanic.\n"
@@ -119,7 +118,7 @@ def get_valid_threshold(prompt: str) -> float:
             print("Invalid input. Please enter a float between 0 and 1.")
 
 
-def preprocess_data(model: str, metric: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
+def preprocess_data(model: str, metric: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
     """
     Preprocesses the Titanic dataset for training.
 
@@ -128,7 +127,7 @@ def preprocess_data(model: str, metric: str) -> Tuple[pd.DataFrame, pd.DataFrame
         metric (str): The chosen metric type.
 
     Returns:
-        Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]: The preprocessed training and test data, and the preprocessor object.
+        tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]: The preprocessed training and test data, and the preprocessor object.
     """
     train_df = pd.read_csv("input/train.csv")
     selected_columns = train_df.drop(

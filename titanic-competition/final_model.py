@@ -17,7 +17,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
-from typing import Tuple
 
 
 def validate_csv(file_path: str) -> None:
@@ -122,7 +121,7 @@ def parse_args() -> argparse.Namespace:
 
 def preprocess_data(
     file_path: str, model: str
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
 
     """
     Preprocesses data for training and testing.
@@ -132,7 +131,7 @@ def preprocess_data(
         model (str): The model type to decide preprocessing steps.
 
     Returns:
-        Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
+        tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
             - X_train: Training features
             - X_test: Test features
             - y_train: Training labels
