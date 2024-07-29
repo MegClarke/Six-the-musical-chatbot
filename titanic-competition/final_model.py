@@ -1,3 +1,6 @@
+import argparse
+import os
+
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -17,130 +20,135 @@ from sklearn.tree import DecisionTreeClassifier
 from typing import Tuple
 
 
-def choose_model_and_metric() -> Tuple[str, str]:
+def validate_csv(file_path: str) -> None:
     """
-    Prompts the user to choose a model and metric for training.
+    Validate that the CSV file exists and contains the required columns.
+
+    Args:
+        file_path (str): Path to the CSV file.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file is missing required columns.
+    """
+    if not os.path.isfile(file_path):
+        raise FileNotFoundError(f"The file {file_path} does not exist.")
+
+    df = pd.read_csv(file_path)
+
+    required_columns = {"Survived", "Sex", "Pclass", "Age"}
+    missing_columns = required_columns - set(df.columns)
+
+    if missing_columns:
+        raise ValueError(
+            f"The file {file_path} is missing the following required columns: {', '.join(missing_columns)}"
+        )
+
+
+def validate_model(model: str) -> None:
+    """
+    Validate the model type.
+
+    Args:
+        model (str): The model type to validate.
+
+    Raises:
+        ValueError: If the model type is invalid.
+    """
+    valid_models = {"logistic_regression", "decision_trees"}
+    if model not in valid_models:
+        raise ValueError(
+            f"Invalid model type. Expected one of {valid_models}, got '{model}'."
+        )
+
+
+def validate_threshold(threshold: float) -> None:
+    """
+    Validate the threshold value.
+
+    Args:
+        threshold (float): The threshold value to validate.
+
+    Raises:
+        ValueError: If the threshold is not a float or not between 0 and 1.
+    """
+    try:
+        threshold = float(threshold)
+    except ValueError:
+        raise ValueError(f"Threshold should be a float. Got '{threshold}'.")
+
+    if not (0 <= threshold <= 1):
+        raise ValueError(f"Threshold should be between 0 and 1. Got '{threshold}'.")
+
+
+def parse_args() -> argparse.Namespace:
+    """
+    Parse and validate command-line arguments.
 
     Returns:
-        Tuple[str, str]: The chosen model and metric.
+        argparse.Namespace: The parsed command-line arguments.
     """
-    print(
-        "\nThis script trains a model to predict the survival of passengers on the Titanic.\n"
+    parser = argparse.ArgumentParser(
+        description="Train a classifier model on the Titanic dataset."
     )
 
-    print("What metric is most important to you?")
-    print("1. Accuracy")
-    print("2. Precision")
-    print("3. Recall")
-    print("4. All of the above")
-
-    while True:
-        choice = input("\nInput the number of your choice: ")
-        if choice == "1":
-            print("To optimize accuracy, I recommend using a Decision Tree Classifier.")
-            metric = "all"
-            break
-        elif choice == "2":
-            print(
-                "To optimize precision, I recommend using a Decision Tree Classifier."
-            )
-            metric = "precision"
-            break
-        elif choice == "3":
-            print("To optimize recall, I recommend using a Logistic Regression model.")
-            metric = "all"
-            break
-        elif choice == "4":
-            print(
-                "To optimize all metrics, I recommend using a Decision Tree Classifier."
-            )
-            metric = "all"
-            break
-        else:
-            print("Invalid choice. Please enter a number between 1 and 4.")
-
-    print("\nWhat model would you like to use?")
-    print("1. Decision tree classifier")
-    print("2. Logistic regression")
-
-    while True:
-        model_choice = input("\nInput the number of your choice: ")
-        if model_choice == "1":
-            model = "decision"
-            break
-        elif model_choice == "2":
-            model = "logistic"
-            break
-        else:
-            print("Invalid choice. Please enter 1 or 2.")
-
-    return model, metric
-
-
-def get_valid_input(prompt: str, valid_options: list) -> str:
-    """
-    Prompts the user to enter a valid input from the given options.
-
-    Args:
-        prompt (str): The input prompt to display to the user.
-        valid_options (list): A list of valid options.
-
-    Returns:
-        str: The valid user input.
-    """
-    while True:
-        user_input = input(prompt).lower()
-        if user_input in valid_options:
-            return user_input
-        else:
-            print(
-                f"Invalid input. Please enter one of the following: {', '.join(valid_options)}"
-            )
-
-
-def get_valid_threshold(prompt: str) -> float:
-    """
-    Prompts the user to enter a valid threshold between 0 and 1.
-
-    Args:
-        prompt (str): The input prompt to display to the user.
-
-    Returns:
-        float: The valid threshold entered by the user.
-    """
-    while True:
-        try:
-            threshold = float(input(prompt))
-            if 0 <= threshold <= 1:
-                return threshold
-            else:
-                print("Invalid input. Please enter a float between 0 and 1.")
-        except ValueError:
-            print("Invalid input. Please enter a float between 0 and 1.")
-
-
-def preprocess_data(model: str, metric: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, object]:
-    """
-    Preprocesses the Titanic dataset for training.
-
-    Args:
-        model (str): The chosen model type.
-        metric (str): The chosen metric type.
-
-    Returns:
-        Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, object]: The preprocessed training and test data, and the preprocessor object.
-    """
-    train_df = pd.read_csv("input/train.csv")
-    selected_columns = train_df.drop(
-        ["Name", "SibSp", "Parch", "Ticket", "Fare", "Cabin", "Embarked"], axis=1
+    parser.add_argument(
+        "csv_file",
+        type=str,
+        help="Path to the Titanic CSV file. Must contain columns: Survived, Sex, Pclass, Age.",
     )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="decision_trees",
+        choices=["logistic_regression", "decision_trees"],
+        help="Model to use: logistic_regression or decision_trees. Default is decision_trees.",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.5,
+        help="Threshold value between 0 and 1. Default is 0.5.",
+    )
+
+    args = parser.parse_args()
+
+    validate_csv(args.csv_file)
+    validate_model(args.model)
+    validate_threshold(args.threshold)
+
+    return args
+
+
+def preprocess_data(
+    file_path: str, model: str
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
+
+    """
+    Preprocesses data for training and testing.
+
+    Args:
+        file_path (str): Path to the CSV file.
+        model (str): The model type to decide preprocessing steps.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
+            - X_train: Training features
+            - X_test: Test features
+            - y_train: Training labels
+            - y_test: Test labels
+            - preprocessor: The preprocessing transformer.
+    """
+
+    train_df = pd.read_csv(file_path)
+    selected_columns = train_df
     selected_columns["Sex"] = LabelEncoder().fit_transform(selected_columns["Sex"])
     preprocessor = ColumnTransformer(
         transformers=[("pclass", OneHotEncoder(drop="first"), ["Pclass"])],
         remainder="passthrough",
     )
 
-    if model == "logistic" or metric == "precision":
+    if model == "logistic_regression":
         selected_columns["<10 yrs"] = train_df["Age"].apply(
             lambda x: 1 if x < 10 else 0
         )
@@ -158,7 +166,12 @@ def preprocess_data(model: str, metric: str) -> Tuple[pd.DataFrame, pd.DataFrame
     return X_train, X_test, y_train, y_test, preprocessor
 
 
-def train_model(X_train: pd.DataFrame, y_train: pd.Series, preprocessor: ColumnTransformer, model: str) -> Pipeline:
+def train_model(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    preprocessor: ColumnTransformer,
+    model: str,
+) -> Pipeline:
     """
     Trains a machine learning model using the given data.
 
@@ -171,7 +184,7 @@ def train_model(X_train: pd.DataFrame, y_train: pd.Series, preprocessor: ColumnT
     Returns:
         Pipeline: The trained model pipeline.
     """
-    if model == "decision":
+    if model == "decision_trees":
         pipeline = Pipeline(
             steps=[
                 ("preprocessor", preprocessor),
@@ -219,36 +232,9 @@ def plot_graphs(y_test: pd.Series, probabilities: pd.Series) -> None:
     plt.show()
 
 
-def choose_threshold(y_test: pd.Series, probabilities: pd.Series) -> float:
-    """
-    Prompts the user to choose a threshold for the model and optionally plots graphs to help in the decision.
-
-    Args:
-        y_test (pd.Series): The true labels for the test data.
-        probabilities (pd.Series): The predicted probabilities for the test data.
-
-    Returns:
-        float: The chosen threshold.
-    """
-    print("\nDo you want to choose a threshold for the model?")
-    choose_threshold = get_valid_input("(y/n): ", ["y", "n"])
-
-    if choose_threshold == "n":
-        print("\nThe model will use the default threshold of 0.5.")
-        return 0.5
-    else:
-        print(
-            "Would you like to see precision-recall curve to help you choose a threshold?"
-        )
-        show_graph = get_valid_input("(y/n): ", ["y", "n"])
-
-        if show_graph == "y":
-            plot_graphs(y_test, probabilities)
-
-        return get_valid_threshold("Input the threshold: ")
-
-
-def evaluate_model(y_test: pd.Series, probabilities: pd.Series, threshold: float) -> None:
+def evaluate_model(
+    y_test: pd.Series, probabilities: pd.Series, threshold: float
+) -> None:
     """
     Evaluates the model using various metrics and prints the results.
 
@@ -274,21 +260,40 @@ def evaluate_model(y_test: pd.Series, probabilities: pd.Series, threshold: float
     print(cm)
 
 
+
 def main() -> None:
     """
-    Main function to execute the model training and evaluation pipeline.
+    Main entry point of the script. This function handles the entire workflow:
+    
+    1. Parses and validates command-line arguments.
+    2. Preprocesses the Titanic dataset based on the specified model.
+    3. Trains the selected machine learning model.
+    4. Generates probability predictions on the test set.
+    5. Plots precision-recall curves and precision-recall vs threshold curves.
+    6. Evaluates the model using various metrics and prints the results.
 
-    This function guides the user through choosing a model and metric, 
-    preprocesses the data, trains the selected model, predicts probabilities, 
-    allows the user to choose a threshold, and evaluates the model based on 
-    the chosen threshold.
+    This function ensures that all necessary steps are executed in sequence,
+    handling any exceptions that arise during processing.
     """
-    model, metric = choose_model_and_metric()
-    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(model, metric)
-    pipeline = train_model(X_train, y_train, preprocessor, model)
-    probabilities = pipeline.predict_proba(X_test)[:, 1]
-    threshold = choose_threshold(y_test, probabilities)
-    evaluate_model(y_test, probabilities, threshold)
+    try:
+        # Parse and validate arguments
+        args = parse_args()
+
+        # Print or use the arguments for your application
+        X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
+            args.csv_file, args.model
+        )
+        pipeline = train_model(X_train, y_train, preprocessor, args.model)
+        probabilities = pipeline.predict_proba(X_test)[:, 1]
+        evaluate_model(y_test, probabilities, args.threshold)
+        plot_graphs(y_test, probabilities)
+
+        # Proceed with the rest of your script logic
+        # e.g., load data, train model, etc.
+
+    except Exception as e:
+        print(f"Error: {e}")
+        exit(1)
 
 
 if __name__ == "__main__":

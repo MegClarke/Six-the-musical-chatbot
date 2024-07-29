@@ -119,7 +119,7 @@ def get_valid_threshold(prompt: str) -> float:
             print("Invalid input. Please enter a float between 0 and 1.")
 
 
-def preprocess_data(model: str, metric: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, object]:
+def preprocess_data(model: str, metric: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
     """
     Preprocesses the Titanic dataset for training.
 
@@ -128,7 +128,7 @@ def preprocess_data(model: str, metric: str) -> Tuple[pd.DataFrame, pd.DataFrame
         metric (str): The chosen metric type.
 
     Returns:
-        Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, object]: The preprocessed training and test data, and the preprocessor object.
+        Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]: The preprocessed training and test data, and the preprocessor object.
     """
     train_df = pd.read_csv("input/train.csv")
     selected_columns = train_df.drop(
