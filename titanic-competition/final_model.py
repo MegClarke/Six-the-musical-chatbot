@@ -1,10 +1,8 @@
 import matplotlib.pyplot as plt
-import pandas as pd  # load the data, statistics
-import seaborn as sns  # visualize the data
+import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
-    ConfusionMatrixDisplay,
     accuracy_score,
     confusion_matrix,
     f1_score,
@@ -16,9 +14,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
+from typing import Tuple
 
 
-def choose_model_and_metric():
+def choose_model_and_metric() -> Tuple[str, str]:
+    """
+    Prompts the user to choose a model and metric for training.
+
+    Returns:
+        Tuple[str, str]: The chosen model and metric.
+    """
     print(
         "\nThis script trains a model to predict the survival of passengers on the Titanic.\n"
     )
@@ -61,10 +66,10 @@ def choose_model_and_metric():
     while True:
         model_choice = input("\nInput the number of your choice: ")
         if model_choice == "1":
-            model = "dt"
+            model = "decision"
             break
         elif model_choice == "2":
-            model = "lr"
+            model = "logistic"
             break
         else:
             print("Invalid choice. Please enter 1 or 2.")
@@ -72,7 +77,17 @@ def choose_model_and_metric():
     return model, metric
 
 
-def get_valid_input(prompt, valid_options):
+def get_valid_input(prompt: str, valid_options: list) -> str:
+    """
+    Prompts the user to enter a valid input from the given options.
+
+    Args:
+        prompt (str): The input prompt to display to the user.
+        valid_options (list): A list of valid options.
+
+    Returns:
+        str: The valid user input.
+    """
     while True:
         user_input = input(prompt).lower()
         if user_input in valid_options:
@@ -83,7 +98,16 @@ def get_valid_input(prompt, valid_options):
             )
 
 
-def get_valid_threshold(prompt):
+def get_valid_threshold(prompt: str) -> float:
+    """
+    Prompts the user to enter a valid threshold between 0 and 1.
+
+    Args:
+        prompt (str): The input prompt to display to the user.
+
+    Returns:
+        float: The valid threshold entered by the user.
+    """
     while True:
         try:
             threshold = float(input(prompt))
@@ -95,7 +119,17 @@ def get_valid_threshold(prompt):
             print("Invalid input. Please enter a float between 0 and 1.")
 
 
-def preprocess_data(model, metric):
+def preprocess_data(model: str, metric: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, object]:
+    """
+    Preprocesses the Titanic dataset for training.
+
+    Args:
+        model (str): The chosen model type.
+        metric (str): The chosen metric type.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, object]: The preprocessed training and test data, and the preprocessor object.
+    """
     train_df = pd.read_csv("input/train.csv")
     selected_columns = train_df.drop(
         ["Name", "SibSp", "Parch", "Ticket", "Fare", "Cabin", "Embarked"], axis=1
@@ -106,7 +140,7 @@ def preprocess_data(model, metric):
         remainder="passthrough",
     )
 
-    if model == "lr" or metric == "precision":
+    if model == "logistic" or metric == "precision":
         selected_columns["<10 yrs"] = train_df["Age"].apply(
             lambda x: 1 if x < 10 else 0
         )
@@ -124,8 +158,20 @@ def preprocess_data(model, metric):
     return X_train, X_test, y_train, y_test, preprocessor
 
 
-def train_model(X_train, y_train, preprocessor, model):
-    if model == "dt":
+def train_model(X_train: pd.DataFrame, y_train: pd.Series, preprocessor: ColumnTransformer, model: str) -> Pipeline:
+    """
+    Trains a machine learning model using the given data.
+
+    Args:
+        X_train (pd.DataFrame): The training data features.
+        y_train (pd.Series): The training data labels.
+        preprocessor (ColumnTransformer): The preprocessor object.
+        model (str): The chosen model type.
+
+    Returns:
+        Pipeline: The trained model pipeline.
+    """
+    if model == "decision":
         pipeline = Pipeline(
             steps=[
                 ("preprocessor", preprocessor),
@@ -141,7 +187,14 @@ def train_model(X_train, y_train, preprocessor, model):
     return pipeline
 
 
-def plot_graphs(y_test, probabilities):
+def plot_graphs(y_test: pd.Series, probabilities: pd.Series) -> None:
+    """
+    Plots precision-recall curves and precision-recall vs threshold curves.
+
+    Args:
+        y_test (pd.Series): The true labels for the test data.
+        probabilities (pd.Series): The predicted probabilities for the test data.
+    """
     precision, recall, thresholds = precision_recall_curve(y_test, probabilities)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
@@ -166,7 +219,17 @@ def plot_graphs(y_test, probabilities):
     plt.show()
 
 
-def choose_threshold(y_test, probabilities):
+def choose_threshold(y_test: pd.Series, probabilities: pd.Series) -> float:
+    """
+    Prompts the user to choose a threshold for the model and optionally plots graphs to help in the decision.
+
+    Args:
+        y_test (pd.Series): The true labels for the test data.
+        probabilities (pd.Series): The predicted probabilities for the test data.
+
+    Returns:
+        float: The chosen threshold.
+    """
     print("\nDo you want to choose a threshold for the model?")
     choose_threshold = get_valid_input("(y/n): ", ["y", "n"])
 
@@ -185,7 +248,15 @@ def choose_threshold(y_test, probabilities):
         return get_valid_threshold("Input the threshold: ")
 
 
-def evaluate_model(y_test, probabilities, threshold):
+def evaluate_model(y_test: pd.Series, probabilities: pd.Series, threshold: float) -> None:
+    """
+    Evaluates the model using various metrics and prints the results.
+
+    Args:
+        y_test (pd.Series): The true labels for the test data.
+        probabilities (pd.Series): The predicted probabilities for the test data.
+        threshold (float): The threshold for converting probabilities to class labels.
+    """
     predictions = (probabilities >= threshold).astype(int)
 
     accuracy = accuracy_score(y_test, predictions)
@@ -203,7 +274,15 @@ def evaluate_model(y_test, probabilities, threshold):
     print(cm)
 
 
-def main():
+def main() -> None:
+    """
+    Main function to execute the model training and evaluation pipeline.
+
+    This function guides the user through choosing a model and metric, 
+    preprocesses the data, trains the selected model, predicts probabilities, 
+    allows the user to choose a threshold, and evaluates the model based on 
+    the chosen threshold.
+    """
     model, metric = choose_model_and_metric()
     X_train, X_test, y_train, y_test, preprocessor = preprocess_data(model, metric)
     pipeline = train_model(X_train, y_train, preprocessor, model)

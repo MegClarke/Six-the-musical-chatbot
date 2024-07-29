@@ -32,9 +32,6 @@ This project involves exploring and attempting to solve the Kaggle Titanic compe
    python final-model.py
 ```
 
-## Six the Musical Chatbot
-
-A simple chatbot project focused on "Six the Musical". The chatbot is designed to answer questions and provide information about the musical. This project involves large language models (LLMs).
 
    
 
