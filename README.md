@@ -29,7 +29,7 @@ This project involves exploring and attempting to solve the Kaggle Titanic compe
 ### Running
 ```bash
    cd titanic-competition
-   python final-model.py input/train.csv --model decision_trees --threshold 0.55
+   python final_model.py input/train.csv --model decision_trees --threshold 0.55
 ```
 
 

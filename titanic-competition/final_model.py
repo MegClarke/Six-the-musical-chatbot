@@ -18,6 +18,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
 
+from constants import SURVIVED, SEX, PCLASS, AGE, UNDER_10_YEARS, OVER_60_YEARS, DEFAULT_THRESHOLD, TEST_SIZE, RANDOM_STATE, ModelType
+
 
 def validate_csv(file_path: str) -> None:
     """
@@ -35,7 +37,7 @@ def validate_csv(file_path: str) -> None:
 
     df = pd.read_csv(file_path)
 
-    required_columns = {"Survived", "Sex", "Pclass", "Age"}
+    required_columns = {SURVIVED, SEX, PCLASS, AGE}
     missing_columns = required_columns - set(df.columns)
 
     if missing_columns:
@@ -54,7 +56,7 @@ def validate_model(model: str) -> None:
     Raises:
         ValueError: If the model type is invalid.
     """
-    valid_models = {"logistic_regression", "decision_trees"}
+    valid_models = { ModelType.LOG_REG.value , ModelType.DEC_TREES.value}
     if model not in valid_models:
         raise ValueError(
             f"Invalid model type. Expected one of {valid_models}, got '{model}'."
@@ -99,14 +101,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         type=str,
-        default="decision_trees",
-        choices=["logistic_regression", "decision_trees"],
+        default=ModelType.DEC_TREES.value,
+        choices=[ModelType.LOG_REG.value, ModelType.DEC_TREES.value],
         help="Model to use: logistic_regression or decision_trees. Default is decision_trees.",
     )
     parser.add_argument(
         "--threshold",
         type=float,
-        default=0.5,
+        default=DEFAULT_THRESHOLD,
         help="Threshold value between 0 and 1. Default is 0.5.",
     )
 
@@ -122,7 +124,6 @@ def parse_args() -> argparse.Namespace:
 def preprocess_data(
     file_path: str, model: str
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
-
     """
     Preprocesses data for training and testing.
 
@@ -141,26 +142,26 @@ def preprocess_data(
 
     train_df = pd.read_csv(file_path)
     selected_columns = train_df
-    selected_columns["Sex"] = LabelEncoder().fit_transform(selected_columns["Sex"])
+    selected_columns[SEX] = LabelEncoder().fit_transform(selected_columns[SEX])
     preprocessor = ColumnTransformer(
-        transformers=[("pclass", OneHotEncoder(drop="first"), ["Pclass"])],
+        transformers=[(PCLASS, OneHotEncoder(drop="first"), [PCLASS])],
         remainder="passthrough",
     )
 
-    if model == "logistic_regression":
-        selected_columns["<10 yrs"] = train_df["Age"].apply(
+    if model == ModelType.LOG_REG.value:
+        selected_columns[UNDER_10_YEARS] = train_df[AGE].apply(
             lambda x: 1 if x < 10 else 0
         )
-        selected_columns[">60 yrs"] = train_df["Age"].apply(
+        selected_columns[OVER_60_YEARS] = train_df[AGE].apply(
             lambda x: 1 if x > 60 else 0
         )
-        X = selected_columns[["Sex", "Pclass", "<10 yrs", ">60 yrs"]]
+        X = selected_columns[[SEX, PCLASS, UNDER_10_YEARS, OVER_60_YEARS]]
     else:
-        X = selected_columns[["Sex", "Pclass", "Age"]]
+        X = selected_columns[[SEX, PCLASS, AGE]]
 
-    y = selected_columns["Survived"]
+    y = selected_columns[SURVIVED]
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=3, stratify=y
+        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
     )
     return X_train, X_test, y_train, y_test, preprocessor
 
@@ -183,7 +184,7 @@ def train_model(
     Returns:
         Pipeline: The trained model pipeline.
     """
-    if model == "decision_trees":
+    if model == ModelType.DEC_TREES.value:
         pipeline = Pipeline(
             steps=[
                 ("preprocessor", preprocessor),
@@ -259,11 +260,10 @@ def evaluate_model(
     print(cm)
 
 
-
 def main() -> None:
     """
     Main entry point of the script. This function handles the entire workflow:
-    
+
     1. Parses and validates command-line arguments.
     2. Preprocesses the Titanic dataset based on the specified model.
     3. Trains the selected machine learning model.
