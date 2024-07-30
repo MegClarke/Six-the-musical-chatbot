@@ -15,6 +15,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
 
+from constants import SURVIVED, SEX, PCLASS, AGE, UNDER_10_YEARS, OVER_60_YEARS, DEFAULT_THRESHOLD, TEST_SIZE, RANDOM_STATE, ModelType
 
 def choose_model_and_metric() -> tuple[str, str]:
     """
@@ -65,10 +66,10 @@ def choose_model_and_metric() -> tuple[str, str]:
     while True:
         model_choice = input("\nInput the number of your choice: ")
         if model_choice == "1":
-            model = "decision"
+            model = ModelType.DEC_TREES.value
             break
         elif model_choice == "2":
-            model = "logistic"
+            model = ModelType.LOG_REG.value
             break
         else:
             print("Invalid choice. Please enter 1 or 2.")
@@ -133,26 +134,26 @@ def preprocess_data(model: str, metric: str) -> tuple[pd.DataFrame, pd.DataFrame
     selected_columns = train_df.drop(
         ["Name", "SibSp", "Parch", "Ticket", "Fare", "Cabin", "Embarked"], axis=1
     )
-    selected_columns["Sex"] = LabelEncoder().fit_transform(selected_columns["Sex"])
+    selected_columns[SEX] = LabelEncoder().fit_transform(selected_columns[SEX])
     preprocessor = ColumnTransformer(
-        transformers=[("pclass", OneHotEncoder(drop="first"), ["Pclass"])],
+        transformers=[(PCLASS, OneHotEncoder(drop="first"), [PCLASS])],
         remainder="passthrough",
     )
 
-    if model == "logistic" or metric == "precision":
-        selected_columns["<10 yrs"] = train_df["Age"].apply(
+    if model == ModelType.LOG_REG.value or metric == "precision":
+        selected_columns[UNDER_10_YEARS] = train_df[AGE].apply(
             lambda x: 1 if x < 10 else 0
         )
-        selected_columns[">60 yrs"] = train_df["Age"].apply(
+        selected_columns[OVER_60_YEARS] = train_df[AGE].apply(
             lambda x: 1 if x > 60 else 0
         )
-        X = selected_columns[["Sex", "Pclass", "<10 yrs", ">60 yrs"]]
+        X = selected_columns[[SEX, PCLASS, UNDER_10_YEARS, OVER_60_YEARS]]
     else:
-        X = selected_columns[["Sex", "Pclass", "Age"]]
+        X = selected_columns[[SEX, PCLASS, AGE]]
 
-    y = selected_columns["Survived"]
+    y = selected_columns[SURVIVED]
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=3, stratify=y
+        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
     )
     return X_train, X_test, y_train, y_test, preprocessor
 
@@ -170,7 +171,7 @@ def train_model(X_train: pd.DataFrame, y_train: pd.Series, preprocessor: ColumnT
     Returns:
         Pipeline: The trained model pipeline.
     """
-    if model == "decision":
+    if model == ModelType.DEC_TREES.value:
         pipeline = Pipeline(
             steps=[
                 ("preprocessor", preprocessor),
@@ -233,8 +234,8 @@ def choose_threshold(y_test: pd.Series, probabilities: pd.Series) -> float:
     choose_threshold = get_valid_input("(y/n): ", ["y", "n"])
 
     if choose_threshold == "n":
-        print("\nThe model will use the default threshold of 0.5.")
-        return 0.5
+        print(f"\nThe model will use the default threshold of {DEFAULT_THRESHOLD}.")
+        return DEFAULT_THRESHOLD
     else:
         print(
             "Would you like to see precision-recall curve to help you choose a threshold?"
