@@ -3,8 +3,9 @@ import pytest
 
 import pandas as pd
 
-from ...final_model import validate_csv, validate_model, validate_threshold, preprocess_data
+from ...final_model.py import validate_csv, validate_model, validate_threshold, preprocess_data
 from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 
@@ -71,7 +72,6 @@ class TestArgParse:
             validate_threshold("not_a_float")
 
 
-# Test preprocess_data
 class TestPreprocessData(TestCase):
     def setUp(self, tmpdir):
         # Patch the read_csv method
@@ -120,20 +120,49 @@ class TestPreprocessData(TestCase):
         self.assertTrue(all(col in X_train.columns for col in expected_columns))
 
 
-'''
 class TestTrainModel:
-    def test_train_model(self):
-        X_train = pd.DataFrame({
+    def setUp(self):
+        self.patcher1 = mock.patch('sklearn.pipeline.Pipeline.fit', mock.MagicMock(name="fit"))
+        self.patcher2 = mock.patch('sklearn.pipeline.Pipeline', mock.MagicMock(name="Pipeline"))
+        self.patcher3 = mock.patch('sklearn.compose.ColumnTransformer', mock.MagicMock(name="ColumnTransformer"))
+        
+        self.mock_fit = self.patcher1.start()
+        self.mock_pipeline = self.patcher2.start()
+        self.mock_column_transformer = self.patcher3.start()
+
+        self. X_train = pd.DataFrame({
             'Sex': ['male', 'female', 'male', 'female', 'female'],
             'Pclass': [1, 2, 3, 1, 2],
             'Age': [22, 38, 6, 35, 61]
         })
 
-        y_train = pd.Series([1, 0, 1, 1, 0])
+        self.y_train = pd.Series([1, 0, 1, 1, 0])
 
-        model = train_model(X_train, y_train, preprocessor, "decision_trees")
-        assert isinstance(model, DecisionTreeClassifier)
+    def tearDown(self):
+        self.patcher1.stop()
+        self.patcher2.stop()
+        self.patcher3.stop()
+
+    def test_train_model_decision_trees(self):
+        pipeline = train_model(self.X_train, self.y_train,  self.mock_column_transformer, "decision_trees")
+
+        self.mock_pipeline.assert_called_once_with(
+            steps=[
+                ("preprocessor", self.mock_column_transformer.return_value),
+                ("classifier", DecisionTreeClassifier()),
+            ]
+        )
+        assert pipeline == self.mock_pipeline.return_value
+        self.mock_fit.assert_called_once_with(self.X_train, self.y_train)
         
-        model = train_model(X_train, y_train, preprocessor, "logistic_regression")
-        assert isinstance(model, LogisticRegression)
-'''
+    def test_train_model_logistic_regression(self):
+        pipeline = train_model(self.X_train, self.y_train,  self.mock_column_transformer, "logistic_regression")
+        self.mock_pipeline.assert_called_once_with(
+            steps=[
+                ("preprocessor", self.mock_column_transformer.return_value),
+                ("classifier", LogisticRegression()),
+            ]
+        )
+        assert pipeline == self.mock_pipeline.return_value
+        self.mock_fit.assert_called_once_with(self.X_train, self.y_train)
+
