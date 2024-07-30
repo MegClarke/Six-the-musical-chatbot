@@ -33,7 +33,7 @@ This project involves exploring and attempting to solve the Kaggle Titanic compe
 
 ###Testing
 ```bash
-   cd titanic-competition/test/__unit__
+   cd titanic-competition
    pytest test_suite.py
 ```
    

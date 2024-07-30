@@ -3,11 +3,11 @@ import pytest
 
 import pandas as pd
 
-from ...final_model.py import validate_csv, validate_model, validate_threshold, preprocess_data
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
+
+from final_model import validate_csv, validate_model, validate_threshold, preprocess_data, train_model 
 
 
 mock_csv_data = """
