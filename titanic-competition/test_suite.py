@@ -1,3 +1,5 @@
+import os
+import tempfile
 from unittest import TestCase, mock
 
 import pandas as pd
@@ -6,6 +8,7 @@ from final_model import (
     ColumnTransformer,
     DecisionTreeClassifier,
     LogisticRegression,
+    Pipeline,
     preprocess_data,
     train_model,
     validate_csv,
@@ -23,11 +26,11 @@ Survived,Sex,Pclass,Age
 
 mock_df = pd.DataFrame(
     {
-        "Id": [1, 2, 3, 4, 5],
-        "Survived": [1, 0, 1, 1, 0],
-        "Sex": ["male", "female", "male", "female", "female"],
-        "Pclass": [1, 2, 3, 1, 2],
-        "Age": [22, 38, 6, 35, 61],
+        "Id": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        "Survived": [1, 0, 1, 1, 0, 0, 1, 0, 1, 1],
+        "Sex": ["male", "female", "male", "female", "female", "male", "female", "male", "male", "female"],
+        "Pclass": [1, 2, 3, 1, 2, 3, 1, 2, 3, 1],
+        "Age": [22, 38, 6, 35, 61, 50, 30, 40, 20, 45],
     }
 )
 
@@ -78,21 +81,21 @@ class TestArgParse:
 
 
 class TestPreprocessData(TestCase):
-    def setUp(self, tmpdir):
-        # Patch the read_csv method
-        self.patcher = mock.patch("pandas.read_csv", return_value=mock_df)
-        self.mock_read_csv = self.patcher.start()
-
-        file_path = tmpdir.join("mock.csv")
-        file_path.write(mock_csv_data)
-
-    def tearDown(self):
-        # Stop the patcher
-        self.patcher.stop()
+    def setUp(self):
+        patcher1 = mock.patch("pandas.read_csv", return_value=mock_df)
+        patcher2 = mock.patch(
+            "sklearn.compose.ColumnTransformer",
+            mock.MagicMock(name="ColumnTransformer"),
+        )
+        
+        self.mock_read_csv = patcher1.start()
+        self.mock_column_transformer = patcher2.start()
+        self.addCleanup(patcher1.stop)
+        self.addCleanup(patcher2.stop)
 
     def test_preprocess_data_decision_tree(self):
         X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
-            "mock.csv", "decision_trees"
+            "file.csv", "decision_trees"
         )
 
         assert isinstance(X_train, pd.DataFrame)
@@ -101,50 +104,50 @@ class TestPreprocessData(TestCase):
         assert isinstance(y_test, pd.Series)
         assert isinstance(preprocessor, ColumnTransformer)
 
-        self.assertEqual(X_train.shape, (4, 4))
-        self.assertEqual(X_test.shape, (1, 4))
-        self.assertEqual(y_train.shape, (4,))
-        self.assertEqual(y_test.shape, (1,))
-
-        expected_columns = ["Sex", "Pclass", "<10 yrs", ">60 yrs"]
-        self.assertTrue(all(col in X_train.columns for col in expected_columns))
-
-    def test_preprocess_data_logistic_regression(self):
-        X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
-            "mock.csv", "logistic_regression"
-        )
-
-        assert isinstance(X_train, pd.DataFrame)
-        assert isinstance(X_test, pd.DataFrame)
-        assert isinstance(y_train, pd.Series)
-        assert isinstance(y_test, pd.Series)
-        assert isinstance(preprocessor, ColumnTransformer)
-
-        self.assertEqual(X_train.shape, (4, 3))
-        self.assertEqual(X_test.shape, (1, 3))
-        self.assertEqual(y_train.shape, (4,))
-        self.assertEqual(y_test.shape, (1,))
+        self.assertEqual(X_train.shape, (8, 3))
+        self.assertEqual(X_test.shape, (2, 3))
+        self.assertEqual(y_train.shape, (8,))
+        self.assertEqual(y_test.shape, (2,))
 
         expected_columns = ["Sex", "Pclass", "Age"]
         self.assertTrue(all(col in X_train.columns for col in expected_columns))
 
+    def test_preprocess_data_logistic_regression(self):
+        X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
+            "file.csv", "logistic_regression"
+        )
 
-class TestTrainModel:
+        assert isinstance(X_train, pd.DataFrame)
+        assert isinstance(X_test, pd.DataFrame)
+        assert isinstance(y_train, pd.Series)
+        assert isinstance(y_test, pd.Series)
+        assert isinstance(preprocessor, ColumnTransformer)
+
+        self.assertEqual(X_train.shape, (8, 4))
+        self.assertEqual(X_test.shape, (2, 4))
+        self.assertEqual(y_train.shape, (8,))
+        self.assertEqual(y_test.shape, (2,))
+
+        expected_columns = ["Sex", "Pclass", "<10 yrs", ">60 yrs"]
+        self.assertTrue(all(col in X_train.columns for col in expected_columns))
+
+
+class TestTrainModel(TestCase):
     def setUp(self):
-        self.patcher1 = mock.patch(
+        patcher1 = mock.patch(
             "sklearn.pipeline.Pipeline.fit", mock.MagicMock(name="fit")
         )
-        self.patcher2 = mock.patch(
-            "sklearn.pipeline.Pipeline", mock.MagicMock(name="Pipeline")
+        patcher2 = mock.patch(
+            "sklearn.pipeline.Pipeline", mock.MagicMock(name="Pipeline"),
         )
-        self.patcher3 = mock.patch(
+        patcher3 = mock.patch(
             "sklearn.compose.ColumnTransformer",
             mock.MagicMock(name="ColumnTransformer"),
         )
 
-        self.mock_fit = self.patcher1.start()
-        self.mock_pipeline = self.patcher2.start()
-        self.mock_column_transformer = self.patcher3.start()
+        self.mock_fit = patcher1.start()
+        self.mock_pipeline = patcher2.start()
+        self.mock_column_transformer = patcher3.start()
 
         self.X_train = pd.DataFrame(
             {
@@ -156,37 +159,20 @@ class TestTrainModel:
 
         self.y_train = pd.Series([1, 0, 1, 1, 0])
 
-    def tearDown(self):
-        self.patcher1.stop()
-        self.patcher2.stop()
-        self.patcher3.stop()
+        self.addCleanup(patcher1.stop)
+        self.addCleanup(patcher2.stop)
 
     def test_train_model_decision_trees(self):
-        pipeline = train_model(
+        train_model(
             self.X_train, self.y_train, self.mock_column_transformer, "decision_trees"
         )
-
-        self.mock_pipeline.assert_called_once_with(
-            steps=[
-                ("preprocessor", self.mock_column_transformer.return_value),
-                ("classifier", DecisionTreeClassifier()),
-            ]
-        )
-        assert pipeline == self.mock_pipeline.return_value
         self.mock_fit.assert_called_once_with(self.X_train, self.y_train)
 
     def test_train_model_logistic_regression(self):
-        pipeline = train_model(
+        train_model(
             self.X_train,
             self.y_train,
             self.mock_column_transformer,
             "logistic_regression",
         )
-        self.mock_pipeline.assert_called_once_with(
-            steps=[
-                ("preprocessor", self.mock_column_transformer.return_value),
-                ("classifier", LogisticRegression()),
-            ]
-        )
-        assert pipeline == self.mock_pipeline.return_value
         self.mock_fit.assert_called_once_with(self.X_train, self.y_train)

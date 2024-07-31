@@ -198,7 +198,6 @@ def train_model(
                 ("classifier", LogisticRegression()),
             ]
         )
-
     pipeline.fit(X_train, y_train)
     return pipeline
 
