@@ -16,6 +16,8 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.tree import DecisionTreeClassifier
 
 from constants import SURVIVED, SEX, PCLASS, AGE, UNDER_10_YEARS, OVER_60_YEARS, DEFAULT_THRESHOLD, TEST_SIZE, RANDOM_STATE, ModelType
+from final_model import preprocess_data, train_model, evaluate_model, plot_graphs
+
 
 def choose_model_and_metric() -> tuple[str, str]:
     """
@@ -119,106 +121,6 @@ def get_valid_threshold(prompt: str) -> float:
             print("Invalid input. Please enter a float between 0 and 1.")
 
 
-def preprocess_data(model: str, metric: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]:
-    """
-    Preprocesses the Titanic dataset for training.
-
-    Args:
-        model (str): The chosen model type.
-        metric (str): The chosen metric type.
-
-    Returns:
-        tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, ColumnTransformer]: The preprocessed training and test data, and the preprocessor object.
-    """
-    train_df = pd.read_csv("input/train.csv")
-    selected_columns = train_df.drop(
-        ["Name", "SibSp", "Parch", "Ticket", "Fare", "Cabin", "Embarked"], axis=1
-    )
-    selected_columns[SEX] = LabelEncoder().fit_transform(selected_columns[SEX])
-    preprocessor = ColumnTransformer(
-        transformers=[(PCLASS, OneHotEncoder(drop="first"), [PCLASS])],
-        remainder="passthrough",
-    )
-
-    if model == ModelType.LOG_REG.value or metric == "precision":
-        selected_columns[UNDER_10_YEARS] = train_df[AGE].apply(
-            lambda x: 1 if x < 10 else 0
-        )
-        selected_columns[OVER_60_YEARS] = train_df[AGE].apply(
-            lambda x: 1 if x > 60 else 0
-        )
-        X = selected_columns[[SEX, PCLASS, UNDER_10_YEARS, OVER_60_YEARS]]
-    else:
-        X = selected_columns[[SEX, PCLASS, AGE]]
-
-    y = selected_columns[SURVIVED]
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
-    )
-    return X_train, X_test, y_train, y_test, preprocessor
-
-
-def train_model(X_train: pd.DataFrame, y_train: pd.Series, preprocessor: ColumnTransformer, model: str) -> Pipeline:
-    """
-    Trains a machine learning model using the given data.
-
-    Args:
-        X_train (pd.DataFrame): The training data features.
-        y_train (pd.Series): The training data labels.
-        preprocessor (ColumnTransformer): The preprocessor object.
-        model (str): The chosen model type.
-
-    Returns:
-        Pipeline: The trained model pipeline.
-    """
-    if model == ModelType.DEC_TREES.value:
-        pipeline = Pipeline(
-            steps=[
-                ("preprocessor", preprocessor),
-                ("classifier", DecisionTreeClassifier()),
-            ]
-        )
-    else:
-        pipeline = Pipeline(
-            steps=[("preprocessor", preprocessor), ("classifier", LogisticRegression())]
-        )
-
-    pipeline.fit(X_train, y_train)
-    return pipeline
-
-
-def plot_graphs(y_test: pd.Series, probabilities: pd.Series) -> None:
-    """
-    Plots precision-recall curves and precision-recall vs threshold curves.
-
-    Args:
-        y_test (pd.Series): The true labels for the test data.
-        probabilities (pd.Series): The predicted probabilities for the test data.
-    """
-    precision, recall, thresholds = precision_recall_curve(y_test, probabilities)
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
-
-    # Plot precision-recall curve
-    ax1.plot(recall, precision, marker=".", label="Decision Tree")
-    ax1.set_xlabel("Recall")
-    ax1.set_ylabel("Precision")
-    ax1.set_title("Precision-Recall Curve")
-    ax1.legend()
-
-    # Plot precision-recall vs threshold curve
-    ax2.plot(thresholds, precision[:-1], "b-", label="Precision")
-    ax2.plot(thresholds, recall[:-1], "r-", label="Recall")
-    ax2.set_xlabel("Threshold")
-    ax2.set_ylabel("Score")
-    ax2.set_title("Precision and Recall vs. Threshold")
-    ax2.legend()
-    ax2.grid(True)
-
-    plt.tight_layout()
-    plt.show()
-
-
 def choose_threshold(y_test: pd.Series, probabilities: pd.Series) -> float:
     """
     Prompts the user to choose a threshold for the model and optionally plots graphs to help in the decision.
@@ -248,32 +150,6 @@ def choose_threshold(y_test: pd.Series, probabilities: pd.Series) -> float:
         return get_valid_threshold("Input the threshold: ")
 
 
-def evaluate_model(y_test: pd.Series, probabilities: pd.Series, threshold: float) -> None:
-    """
-    Evaluates the model using various metrics and prints the results.
-
-    Args:
-        y_test (pd.Series): The true labels for the test data.
-        probabilities (pd.Series): The predicted probabilities for the test data.
-        threshold (float): The threshold for converting probabilities to class labels.
-    """
-    predictions = (probabilities >= threshold).astype(int)
-
-    accuracy = accuracy_score(y_test, predictions)
-    precision = precision_score(y_test, predictions)
-    recall = recall_score(y_test, predictions)
-    f1 = f1_score(y_test, predictions)
-    cm = confusion_matrix(y_test, predictions)
-
-    print(f"\nThreshold: {threshold}")
-    print(f"Accuracy: {accuracy:.2f}")
-    print(f"Precision: {precision:.2f}")
-    print(f"Recall: {recall:.2f}")
-    print(f"F1: {f1:.2f}")
-    print("Confusion Matrix:")
-    print(cm)
-
-
 def main() -> None:
     """
     Main function to execute the model training and evaluation pipeline.
@@ -284,7 +160,7 @@ def main() -> None:
     the chosen threshold.
     """
     model, metric = choose_model_and_metric()
-    X_train, X_test, y_train, y_test, preprocessor = preprocess_data(model, metric)
+    X_train, X_test, y_train, y_test, preprocessor = preprocess_data('input/train.csv', model)
     pipeline = train_model(X_train, y_train, preprocessor, model)
     probabilities = pipeline.predict_proba(X_test)[:, 1]
     threshold = choose_threshold(y_test, probabilities)
