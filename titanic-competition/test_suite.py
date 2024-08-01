@@ -5,7 +5,6 @@ from unittest import TestCase, mock
 import pandas as pd
 import pytest
 from final_model import (
-    ColumnTransformer,
     DecisionTreeClassifier,
     LogisticRegression,
     Pipeline,
@@ -15,6 +14,7 @@ from final_model import (
     validate_model,
     validate_threshold,
 )
+from sklearn.compose import ColumnTransformer
 
 mock_csv_data = """
 Survived,Sex,Pclass,Age
