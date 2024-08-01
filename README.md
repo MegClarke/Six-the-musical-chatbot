@@ -31,7 +31,7 @@ This project involves exploring and attempting to solve the Kaggle Titanic compe
    python final_model.py input/train.csv --model decision_trees --threshold 0.55
 ```
 
-###Testing
+### Testing
 ```bash
    cd titanic-competition
    pytest test_suite.py
