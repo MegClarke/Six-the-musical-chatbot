@@ -250,7 +250,7 @@ class TestTrainModel(TestCase):
         The train_model function is called with 'logistic_regression' model type.
         
         Expected:
-        The model should be trained using the provided training data and column transformer.
+        The classifier in the pipeline should be Logistic Regression and the model should be trained using the provided training data.
         """
         train_model(
             self.X_train,
