@@ -203,20 +203,14 @@ class TestTrainModel(TestCase):
     Tests for the train_model function, ensuring models are trained correctly.
     """
     def setUp(self):
-        patcher1 = mock.patch(
-            "sklearn.pipeline.Pipeline.fit", mock.MagicMock(name="fit")
-        )
-        patcher2 = mock.patch(
-            "sklearn.pipeline.Pipeline", mock.MagicMock(name="Pipeline"),
-        )
-        patcher3 = mock.patch(
-            "sklearn.compose.ColumnTransformer",
-            mock.MagicMock(name="ColumnTransformer"),
-        )
+        patcher1 = mock.patch("final_model.Pipeline", autospec=True)
+        patcher2 = mock.patch("sklearn.compose.ColumnTransformer", autospec=True)
 
-        self.mock_fit = patcher1.start()
-        self.mock_pipeline = patcher2.start()
-        self.mock_column_transformer = patcher3.start()
+        self.mock_pipeline_class = patcher1.start()
+        self.mock_column_transformer = patcher2.start()
+
+        self.mock_pipeline_instance = self.mock_pipeline_class.return_value
+        self.mock_pipeline_instance.fit = mock.Mock()
 
         self.X_train = pd.DataFrame(
             {
@@ -237,12 +231,18 @@ class TestTrainModel(TestCase):
         The train_model function is called with 'decision_trees' model type.
         
         Expected:
-        The model should be trained using the provided training data and column transformer.
+        The classifier in the pipeline should be DecisionTreeClassifier and the model should be trained using the provided training data.
         """
         train_model(
             self.X_train, self.y_train, self.mock_column_transformer, "decision_trees"
         )
-        self.mock_fit.assert_called_once_with(self.X_train, self.y_train)
+        self.mock_pipeline_class.assert_called_once()
+        _, kwargs = self.mock_pipeline_class.call_args
+        steps = kwargs['steps']
+        self.assertEqual(steps[1][0], 'classifier')
+        self.assertIsInstance(steps[1][1], DecisionTreeClassifier)
+
+        self.mock_pipeline_instance.fit.assert_called_once_with(self.X_train, self.y_train)
 
     def test_train_model_logistic_regression(self):
         """
@@ -258,4 +258,10 @@ class TestTrainModel(TestCase):
             self.mock_column_transformer,
             "logistic_regression",
         )
-        self.mock_fit.assert_called_once_with(self.X_train, self.y_train)
+        self.mock_pipeline_class.assert_called_once()
+        _, kwargs = self.mock_pipeline_class.call_args
+        steps = kwargs['steps']
+        self.assertEqual(steps[1][0], 'classifier')
+        self.assertIsInstance(steps[1][1], LogisticRegression)
+
+        self.mock_pipeline_instance.fit.assert_called_once_with(self.X_train, self.y_train)
