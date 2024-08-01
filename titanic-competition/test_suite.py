@@ -36,21 +36,42 @@ mock_df = pd.DataFrame(
 
 
 class TestArgParse:
-    # Test validate_csv
+    """
+    Tests for argument parsing functions, including CSV, model, and threshold validation.
+    """
+     
     def test_validate_csv_valid_file(self, tmpdir):
-        # Create a temporary CSV file
+        """
+        Condition:
+        A valid CSV file with the correct columns and data format is provided.
+        
+        Expected:
+        No exceptions should be raised.
+        """
         file_path = tmpdir.join("valid.csv")
         file_path.write(mock_csv_data)
 
-        # This should not raise any exceptions
         validate_csv(str(file_path))
 
     def test_validate_csv_missing_file(self):
+        """
+        Condition:
+        A non-existent CSV file is provided.
+        
+        Expected:
+        FileNotFoundError should be raised.
+        """
         with pytest.raises(FileNotFoundError):
             validate_csv("non_existent_file.csv")
 
     def test_validate_csv_missing_columns(self, tmpdir):
-        # Create a temporary CSV file with missing columns
+        """
+        Condition:
+        A CSV file with missing columns is provided.
+        
+        Expected:
+        ValueError should be raised.
+        """
         invalid_csv_data = "Survived,Sex\n1,male\n0,female"
         file_path = tmpdir.join("invalid.csv")
         file_path.write(invalid_csv_data)
@@ -58,20 +79,48 @@ class TestArgParse:
         with pytest.raises(ValueError):
             validate_csv(str(file_path))
 
-    # Test validate_model
-    def test_validate_model(self):
+    def test_validate_model_valid(self):
+        """
+        Condition:
+        Valid model names ("logistic_regression", "decision_trees") are provided.
+        
+        Expected:
+        No exceptions should be raised.
+        """
         validate_model("logistic_regression")
         validate_model("decision_trees")
 
+    def test_validate_model_invalid(self):
+        """
+        Condition:
+        Invalid model name is provided.
+        
+        Expected:
+        ValueError should be raised.
+        """
         with pytest.raises(ValueError):
             validate_model("invalid_model")
 
-    # Test validate_threshold
     def test_validate_threshold_valid(self):
+        """
+        Condition:
+        Valid threshold values (0.0, 0.5, 1.0) are provided.
+        
+        Expected:
+        No exceptions should be raised.
+        """
         validate_threshold(0.5)
         validate_threshold(0.0)
         validate_threshold(1.0)
 
+    def test_validate_threshold_invalid(self):
+        """
+        Condition:
+        Invalid threshold values (e.g., -0.5, 1.5, "not_a_float") are provided.
+        
+        Expected:
+        ValueError should be raised.
+        """
         with pytest.raises(ValueError):
             validate_threshold(1.5)
         with pytest.raises(ValueError):
@@ -81,6 +130,9 @@ class TestArgParse:
 
 
 class TestPreprocessData(TestCase):
+    """
+    Tests for the preprocess_data function, ensuring it processes data correctly for different models.
+    """
     def setUp(self):
         patcher1 = mock.patch("pandas.read_csv", return_value=mock_df)
         patcher2 = mock.patch(
@@ -94,6 +146,13 @@ class TestPreprocessData(TestCase):
         self.addCleanup(patcher2.stop)
 
     def test_preprocess_data_decision_tree(self):
+        """
+        Condition:
+        The preprocess_data function is called with 'decision_trees' model type.
+        
+        Expected:
+        The data should be split into training sets containing columns ["Sex", "Pclass", "Age"], and test sets containing the column ["Survived"].
+        """
         X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
             "file.csv", "decision_trees"
         )
@@ -113,6 +172,13 @@ class TestPreprocessData(TestCase):
         self.assertTrue(all(col in X_train.columns for col in expected_columns))
 
     def test_preprocess_data_logistic_regression(self):
+        """
+        Condition:
+        The preprocess_data function is called with 'logistic_regression' model type.
+        
+        Expected:
+        The data should be split into training sets containing columns ["Sex", "Pclass", "<10 yrs", ">60 yrs"], and test sets containing the column ["Survived"].
+        """
         X_train, X_test, y_train, y_test, preprocessor = preprocess_data(
             "file.csv", "logistic_regression"
         )
@@ -133,6 +199,9 @@ class TestPreprocessData(TestCase):
 
 
 class TestTrainModel(TestCase):
+    """
+    Tests for the train_model function, ensuring models are trained correctly.
+    """
     def setUp(self):
         patcher1 = mock.patch(
             "sklearn.pipeline.Pipeline.fit", mock.MagicMock(name="fit")
@@ -163,12 +232,26 @@ class TestTrainModel(TestCase):
         self.addCleanup(patcher2.stop)
 
     def test_train_model_decision_trees(self):
+        """
+        Condition:
+        The train_model function is called with 'decision_trees' model type.
+        
+        Expected:
+        The model should be trained using the provided training data and column transformer.
+        """
         train_model(
             self.X_train, self.y_train, self.mock_column_transformer, "decision_trees"
         )
         self.mock_fit.assert_called_once_with(self.X_train, self.y_train)
 
     def test_train_model_logistic_regression(self):
+        """
+        Condition:
+        The train_model function is called with 'logistic_regression' model type.
+        
+        Expected:
+        The model should be trained using the provided training data and column transformer.
+        """
         train_model(
             self.X_train,
             self.y_train,
