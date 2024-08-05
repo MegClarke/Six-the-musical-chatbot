@@ -1,3 +1,4 @@
 .env
 all_docs.txt
 documents.json
+__pycache__/

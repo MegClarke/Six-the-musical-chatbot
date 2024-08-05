@@ -1,38 +1,33 @@
-import os
-from bs4 import SoupStrainer, BeautifulSoup
-import json
 from langchain import hub
-from langchain_chroma import Chroma
-from langchain.docstore.document import Document
-from langchain_community.document_loaders import WebBaseLoader,  WikipediaLoader
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
+from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 
+import sixchatbot
 
-def get_documents(filename: str) -> list[Document]:
-    with open(filename, 'r') as f:
-        loaded_docs = json.load(f)
 
-    print(loaded_docs)
-    json_docs = []
+def main():
+    load_dotenv()
 
-    for doc in loaded_docs:
-        text = doc["content"]
-        metadata = {"title": doc["title"]}
-        json_docs.extend([Document(metadata=metadata, page_content=text)])
+    documents = sixchatbot.get_documents("documents.json")
+    singleton_chroma = sixchatbot.SingletonChroma.get_instance(documents=documents)  
+    retriever = singleton_chroma.as_retriever(search_type="similarity", search_kwargs={"k": 6})
 
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1300, chunk_overlap=200, add_start_index=True)
-    json_documents = text_splitter.split_documents(json_docs)
+    #config 
+    llm = ChatOpenAI(model_name="gpt-4o-mini")
+    prompt = hub.pull("rlm/rag-prompt")
 
-    return json_documents
+    rag_chain = (
+        {"context": retriever | sixchatbot.format_docs, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+
+    response = rag_chain.invoke("Who was Anne Boleyn in the context of Six the Musical?")
+    print(response)
 
 
 if __name__ == "__main__":
-    load_dotenv()
-
-    documents = get_documents("documents.json")
-    print("")
+    main()
