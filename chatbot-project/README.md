@@ -16,3 +16,5 @@ A RAG-based chatbot meant to help fans of "Six the musical" learn about the char
 3. run `conda env export > environment.yml`
 
 ### Build
+1. Initialize the ChromaDB Vector Store: `python init.py`
+2. Run the RAG pipeline: `python main.py`
