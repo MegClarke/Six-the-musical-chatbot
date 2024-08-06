@@ -23,9 +23,7 @@ repos:
     rev: 6.1.0
     hooks:
       - id: flake8
-        exclude: ^path/to/exclude
-        files: ^path/to/include
-        args: [--config, path/to/project/.flake8]
+        args: ["--config", "chatbot-project/.flake8"]
         additional_dependencies:
           - flake8-bugbear
           - flake8-comprehensions
@@ -36,11 +34,3 @@ repos:
       - id: pydocstyle
         additional_dependencies:
           - tomli
-  - repo: local
-    hooks:
-      - id: pylint
-        name: pylint
-        entry: pylint
-        language: system
-        types: [ python ]
-        args: ["-rn", "-sn"]

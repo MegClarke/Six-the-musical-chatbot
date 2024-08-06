@@ -1,22 +1,32 @@
-from langchain import hub
+"""This module handles the main functionality of the chatbot."""
+
+import yaml
+from dotenv import load_dotenv
+from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import ChatOpenAI
-from dotenv import load_dotenv
 
 import sixchatbot
 
 
 def main():
+    """Main function for the chatbot."""
     load_dotenv()
 
-    documents = sixchatbot.get_documents("documents.json")
-    singleton_chroma = sixchatbot.SingletonChroma.get_instance(documents=documents)  
-    retriever = singleton_chroma.as_retriever(search_type="similarity", search_kwargs={"k": 6})
+    with open("config.yaml", "r", encoding="utf-8") as file:
+        config = yaml.safe_load(file)
 
-    #config 
-    llm = ChatOpenAI(model_name="gpt-4o-mini")
-    prompt = hub.pull("rlm/rag-prompt")
+    documents = sixchatbot.get_documents(
+        "documents.json", config["text_splitter"]["chunk_size"], config["text_splitter"]["chunk_overlap"]
+    )
+    singleton_chroma = sixchatbot.SingletonChroma.get_instance(documents=documents)
+    retriever = singleton_chroma.as_retriever(
+        search_type="similarity", search_kwargs={"k": config["search_kwargs"]["k"]}
+    )
+
+    llm = ChatOpenAI(model_name=config["llm"]["model_name"])
+    prompt = PromptTemplate.from_file(config["llm"]["prompt"])
 
     rag_chain = (
         {"context": retriever | sixchatbot.format_docs, "question": RunnablePassthrough()}

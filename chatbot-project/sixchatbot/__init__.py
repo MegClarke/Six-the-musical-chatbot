@@ -1,7 +1,4 @@
-from .core import get_documents, SingletonChroma, format_docs
-
-"""
-This module sets up and runs a RAG chatbot with a knowledge base about "Six the Musical".
+"""This module sets up and runs a RAG chatbot with a knowledge base about "Six the Musical".
 
 Exported Functions:
 - get_documents(filename: str) -> List[Document]: Loads and splits documents from a JSON file.
@@ -9,4 +6,4 @@ Exported Functions:
 - format_docs(docs: List[Document]) -> str: Formats a list of Document objects into a single string.
 """
 
-
+from .core import get_documents, SingletonChroma, format_docs

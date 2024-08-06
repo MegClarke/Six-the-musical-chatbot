@@ -1,0 +1,10 @@
+llm:
+  model_name: "gpt-4o-mini"
+  prompt: prompts/default.txt
+
+search_kwargs:
+  k: 6
+
+text_splitter:
+  chunk_size: 1300
+  chunk_overlap: 200

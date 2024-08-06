@@ -28,4 +28,3 @@ To set up the repository and install the necessary dependencies, follow these st
 1. Clone the repository:
    ```bash
    git clone https://github.com/GDP-ADMIN/ai-internship-meagan.git
-
