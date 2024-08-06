@@ -6,4 +6,4 @@ Exported Functions:
 - format_docs(docs: List[Document]) -> str: Formats a list of Document objects into a single string.
 """
 
-from .core import get_documents, SingletonChroma, format_docs
+from .core import load_config, persist_directory_exists, get_documents, get_retriever, format_docs

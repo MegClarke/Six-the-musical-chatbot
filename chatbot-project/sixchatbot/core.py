@@ -1,11 +1,24 @@
-"""This module contains functions and classes related to loading and manipulating documents."""
+"""This module contains functions and classes used in init.py and main.py."""
 
 import json
+import os
 
+import yaml
 from langchain.docstore.document import Document
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+
+def load_config(config_file="config.yaml") -> dict:
+    """Load configuration from a YAML file."""
+    with open(config_file, "r", encoding="utf-8") as file:
+        return yaml.safe_load(file)
+
+
+def persist_directory_exists(persist_directory: str) -> bool:
+    """Check if the persist directory exists and is not empty."""
+    return os.path.exists(persist_directory) and os.listdir(persist_directory)
 
 
 def get_documents(filename: str, chunk_size: int, chunk_overlap: int) -> list[Document]:
@@ -35,6 +48,20 @@ def get_documents(filename: str, chunk_size: int, chunk_overlap: int) -> list[Do
     return json_documents
 
 
-def format_docs(docs):
+def get_retriever(config: dict, persist_directory: str) -> Chroma:
+    """Get the retriever of the vector store in persist_directory."""
+    if persist_directory_exists(persist_directory):
+        vector_store = Chroma(
+            embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002"),
+            persist_directory=persist_directory,
+            create_collection_if_not_exists=False,
+        )
+        return vector_store.as_retriever(search_type="similarity", search_kwargs={"k": config["search_kwargs"]["k"]})
+    else:
+        print("Make sure to run init.py before main.py. The vector store hasn't been initialized.")
+        return None
+
+
+def format_docs(docs: list[Document]) -> str:
     """Format a list of Document objects into a single string."""
     return "\n\n".join(doc.page_content for doc in docs)
