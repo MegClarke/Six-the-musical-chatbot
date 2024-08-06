@@ -3,3 +3,4 @@ all_docs.txt
 documents.json
 __pycache__/
 prompts/
+chroma_persist/

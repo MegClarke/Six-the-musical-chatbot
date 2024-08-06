@@ -5,6 +5,9 @@ llm:
 search_kwargs:
   k: 6
 
+chroma:
+  persist_directory: "./chroma_persist"
+
 text_splitter:
   chunk_size: 1300
   chunk_overlap: 200

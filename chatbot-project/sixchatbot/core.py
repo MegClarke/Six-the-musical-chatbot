@@ -35,42 +35,6 @@ def get_documents(filename: str, chunk_size: int, chunk_overlap: int) -> list[Do
     return json_documents
 
 
-# pylint: disable=too-few-public-methods
-class SingletonChroma:
-    """A singleton wrapper for the Chroma vector store."""
-
-    _instance = None
-
-    def __init__(self, documents):
-        """Initialize the SingletonChroma instance.
-
-        Args:
-            documents (List[Document]): The documents to initialize the Chroma\
-            instance.
-        """
-        if SingletonChroma._instance is None:
-            SingletonChroma._instance = Chroma.from_documents(
-                documents=documents, embedding=OpenAIEmbeddings(model="text-embedding-ada-002")
-            )
-
-    @staticmethod
-    def get_instance(documents=None):
-        """Get the singleton instance of SingletonChroma.
-
-        Args:
-            documents (Optional[List[Document]]): The documents to initialize \
-            the Chroma instance. Required if the instance is not yet created.
-
-        Returns:
-            SingletonChroma: The singleton instance.
-        """
-        if SingletonChroma._instance is None:
-            if documents is None:
-                raise ValueError("Documents must be provided for the first initialization.")
-            SingletonChroma(documents)
-        return SingletonChroma._instance
-
-
 def format_docs(docs):
     """Format a list of Document objects into a single string."""
     return "\n\n".join(doc.page_content for doc in docs)
