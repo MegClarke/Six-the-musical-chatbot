@@ -16,7 +16,6 @@ from sixchatbot import format_docs, get_documents, get_retriever, load_config, p
 def test_load_config(mock_safe_load, mock_open):
     """
     Test the load_config function to ensure it loads configuration from a YAML file correctly.
-
     Args:
         mock_safe_load (MagicMock): Mock for yaml.safe_load function.
         mock_open (MagicMock): Mock for builtins.open function.
@@ -31,7 +30,6 @@ def test_load_config(mock_safe_load, mock_open):
 def test_persist_directory_exists_true(mock_exists, mock_listdir):
     """
     Test the persist_directory_exists function when the directory exists to ensure it returns True.
-
     Args:
         mock_exists (MagicMock): Mock for os.path.exists function.
         mock_listdir (MagicMock): Mock for os.listdir function.
@@ -44,7 +42,6 @@ def test_persist_directory_exists_true(mock_exists, mock_listdir):
 def test_persist_directory_exists_false(mock_exists):
     """
     Test the persist_directory_exists function when the directory does not exist to ensure it returns False.
-
     Args:
         mock_exists (MagicMock): Mock for os.path.exists function.
     """
@@ -61,7 +58,6 @@ def test_persist_directory_exists_false(mock_exists):
 def test_get_documents(mock_split_documents, mock_json_load, mock_open):
     """
     Test the get_documents function to ensure it correctly processes and splits documents from a JSON file.
-
     Args:
         mock_split_documents (MagicMock): Mock for RecursiveCharacterTextSplitter.split_documents method.
         mock_json_load (MagicMock): Mock for json.load function.
@@ -81,7 +77,6 @@ def test_get_documents(mock_split_documents, mock_json_load, mock_open):
 def test_get_retriever_existing_directory(mock_openai_embeddings, mock_chroma, mock_persist_directory_exists):
     """
     Test the get_retriever function when the persist directory exists to ensure it corerectly initializes the retriever.
-
     Args:
         mock_openai_embeddings (MagicMock): Mock for OpenAIEmbeddings class.
         mock_chroma (MagicMock): Mock for Chroma class.
@@ -109,7 +104,6 @@ def test_get_retriever_existing_directory(mock_openai_embeddings, mock_chroma, m
 def test_get_retriever_non_existing_directory(mock_persist_directory_exists):
     """
     Test the get_retriever function when the persist directory does not exist to ensure it returns None.
-
     Args:
         mock_persist_directory_exists (MagicMock): Mock for persist_directory_exists function.
     """

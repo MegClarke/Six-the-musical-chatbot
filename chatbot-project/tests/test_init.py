@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from init import init, initialize_vector_store
-from sixchatbot import get_documents, load_config, persist_directory_exists
+import init
+import sixchatbot
 
 
 @pytest.fixture
@@ -56,7 +56,7 @@ def test_initialize_vector_store(
     mock_get_documents.return_value = mock_documents
     mock_openai_embeddings.return_value = MagicMock()
 
-    initialize_vector_store("test_directory", mock_config)
+    init.initialize_vector_store("test_directory", mock_config)
 
     mock_get_documents.assert_called_once_with("documents.json", 100, 10)
     mock_openai_embeddings.assert_called_once_with(model="text-embedding-ada-002")
@@ -66,27 +66,23 @@ def test_initialize_vector_store(
 
 
 @patch("init.load_dotenv")
-@patch("init.sixchatbot.load_config")
-@patch("init.sixchatbot.persist_directory_exists")
 @patch("init.initialize_vector_store")
+@patch("sixchatbot.persist_directory_exists", return_value=True)
 def test_init_already_initialized(
-    mock_initialize_vector_store, mock_persist_directory_exists, mock_load_config, mock_load_dotenv, mock_config
+    mock_persist_directory_exists, mock_initialize_vector_store, mock_load_dotenv, mock_load_config
 ):
     """
     Test the init function when the persist directory already exists to ensure
     it does not call initialize_vector_store.
 
     Args:
-        mock_initialize_vector_store (MagicMock): Mock for initialize_vector_store function.
         mock_persist_directory_exists (MagicMock): Mock for persist_directory_exists function.
-        mock_load_config (MagicMock): Mock for load_config function.
+        mock_initialize_vector_store (MagicMock): Mock for initialize_vector_store function.
         mock_load_dotenv (MagicMock): Mock for load_dotenv function.
-        mock_config (dict): Mock configuration dictionary.
+        mock_load_config (MagicMock): Mock for load_config function. (declared in conftest.py)
     """
-    mock_load_config.return_value = mock_config
-    mock_persist_directory_exists.return_value = True
 
-    init()
+    init.init()
 
     mock_load_dotenv.assert_called_once()
     mock_load_config.assert_called_once()
@@ -95,29 +91,25 @@ def test_init_already_initialized(
 
 
 @patch("init.load_dotenv")
-@patch("init.sixchatbot.load_config")
-@patch("init.sixchatbot.persist_directory_exists")
 @patch("init.initialize_vector_store")
+@patch("sixchatbot.persist_directory_exists", return_value=False)
 def test_init_not_initialized(
-    mock_initialize_vector_store, mock_persist_directory_exists, mock_load_config, mock_load_dotenv, mock_config
+    mock_persist_directory_exists, mock_initialize_vector_store, mock_load_dotenv, mock_load_config
 ):
     """
     Test the init function when the persist directory does not exist to ensure
     it calls initialize_vector_store with the correct arguments.
 
     Args:
-        mock_initialize_vector_store (MagicMock): Mock for initialize_vector_store function.
         mock_persist_directory_exists (MagicMock): Mock for persist_directory_exists function.
-        mock_load_config (MagicMock): Mock for load_config function.
+        mock_initialize_vector_store (MagicMock): Mock for initialize_vector_store function.
         mock_load_dotenv (MagicMock): Mock for load_dotenv function.
-        mock_config (dict): Mock configuration dictionary.
+        mock_load_config (MagicMock): Mock for load_config function. (declared in conftest.py)
     """
-    mock_load_config.return_value = mock_config
-    mock_persist_directory_exists.return_value = False
 
-    init()
+    init.init()
 
     mock_load_dotenv.assert_called_once()
     mock_load_config.assert_called_once()
     mock_persist_directory_exists.assert_called_once_with("test_directory")
-    mock_initialize_vector_store.assert_called_once_with("test_directory", mock_config)
+    mock_initialize_vector_store.assert_called_once_with("test_directory", mock_load_config.return_value)
