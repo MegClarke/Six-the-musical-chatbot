@@ -4,3 +4,4 @@ documents.json
 __pycache__/
 prompts/
 chroma_persist/
+.pytest_cache/

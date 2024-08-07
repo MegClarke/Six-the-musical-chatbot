@@ -14,8 +14,9 @@ def main():
     load_dotenv()
     config = sixchatbot.load_config()
     persist_directory = config["chroma"]["persist_directory"]
+    search_kwargs = config["search_kwargs"]
 
-    retriever = sixchatbot.get_retriever(config, persist_directory)
+    retriever = sixchatbot.get_retriever(persist_directory, search_kwargs)
 
     llm = ChatOpenAI(model_name=config["llm"]["model_name"])
     prompt = PromptTemplate.from_file(config["llm"]["prompt"])
