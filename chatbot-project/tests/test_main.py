@@ -2,10 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 import main
-import sixchatbot
 
 
 @patch("sixchatbot.get_retriever")

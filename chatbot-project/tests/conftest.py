@@ -1,10 +1,12 @@
 """This `conftest.py` file modifies the system path to help resolve the imports of modules in the test scripts."""
 
-from unittest.mock import MagicMock, mock_open, patch
+import os
+import sys
+from unittest.mock import patch
 
 import pytest
 
-import sixchatbot
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 @pytest.fixture

@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import init
-import sixchatbot
 
 
 @pytest.fixture

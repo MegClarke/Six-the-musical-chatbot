@@ -1,11 +1,7 @@
 """Test module for sixchatbot/core.py functions."""
 
-import json
-import os
 from unittest.mock import MagicMock, mock_open, patch
 
-import pytest
-import yaml
 from langchain.docstore.document import Document
 
 from sixchatbot import format_docs, get_documents, get_retriever, load_config, persist_directory_exists
