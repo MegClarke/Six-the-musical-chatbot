@@ -14,6 +14,7 @@ def load_config(config_file="config.yaml") -> dict:
     """Load configuration from a YAML file."""
     with open(config_file, "r", encoding="utf-8") as file:
         return yaml.safe_load(file)
+        # return Config(**yaml.safe_load(file))
 
 
 def persist_directory_exists(persist_directory: str) -> bool:
