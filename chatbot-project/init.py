@@ -11,7 +11,7 @@ import sixchatbot
 def initialize_vector_store(persist_directory, config):
     """Initialize the vector store."""
     documents = sixchatbot.get_documents(
-        "documents.json", config["text_splitter"]["chunk_size"], config["text_splitter"]["chunk_overlap"]
+        "documents.json", config.text_splitter.chunk_size, config.text_splitter.chunk_overlap
     )
 
     Chroma.from_documents(
@@ -26,7 +26,7 @@ def init():
     """Vector store initialization for the chatbot."""
     load_dotenv()
     config = sixchatbot.load_config()
-    persist_directory = config["chroma"]["persist_directory"]
+    persist_directory = config.chroma.persist_directory
 
     if sixchatbot.persist_directory_exists(persist_directory):
         print(
