@@ -193,9 +193,11 @@ def train_model(
         )
     else:
         pipeline = Pipeline(
-            steps=[("preprocessor", preprocessor), ("classifier", LogisticRegression())]
+            steps=[
+                ("preprocessor", preprocessor),
+                ("classifier", LogisticRegression()),
+            ]
         )
-
     pipeline.fit(X_train, y_train)
     return pipeline
 
