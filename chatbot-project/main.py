@@ -2,8 +2,6 @@
 
 from dotenv import load_dotenv
 from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import ChatOpenAI
 
 import sixchatbot
@@ -20,15 +18,17 @@ def main():
     llm = ChatOpenAI(model_name=config["llm"]["model_name"])
     prompt = PromptTemplate.from_file(config["llm"]["prompt"])
 
-    rag_chain = (
-        {"context": retriever | sixchatbot.format_docs, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
-    )
+    questions = sixchatbot.get_questions()
+    retrieved_chunks = []
+    outputs = []
 
-    response = rag_chain.invoke("Tell me about Anne Boleyn in Six the musical")
-    print(response)
+    for question in questions:
+        context_string, response = sixchatbot.process_question(question, retriever, prompt, llm)
+        retrieved_chunks.append(context_string)
+        outputs.append(response)
+
+    sixchatbot.post_chunks(retrieved_chunks)
+    sixchatbot.post_answers(outputs)
 
 
 if __name__ == "__main__":

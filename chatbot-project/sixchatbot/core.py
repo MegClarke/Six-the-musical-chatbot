@@ -5,8 +5,10 @@ import os
 
 import yaml
 from langchain.docstore.document import Document
+from langchain.prompts import PromptTemplate
 from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
+from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
@@ -66,3 +68,28 @@ def get_retriever(config: dict, persist_directory: str) -> Chroma:
 def format_docs(docs: list[Document]) -> str:
     """Format a list of Document objects into a single string."""
     return "\n\n".join(doc.page_content for doc in docs)
+
+
+def process_question(question: str, retriever: Chroma, prompt: PromptTemplate, llm: ChatOpenAI) -> tuple[str, str]:
+    """Process a question by invoking the retriever and the RAG chain.
+
+    Args:
+        question (str): The question to process.
+        retriever (Retriever): The retriever instance to use.
+        prompt (PromptTemplate): The prompt template instance to use.
+        llm (ChatOpenAI): The language model instance to use.
+        retrieved_chunks (list): The list to store the retrieved chunks.
+        outputs (list): The list to store the outputs.
+    """
+    context = retriever.invoke(question)
+
+    context_string = ""
+    context_string = "\n\n".join(f"{str(chunk.metadata)}\n{chunk.page_content[:300]}" for chunk in context)
+
+    context = format_docs(context)
+    input_data = {"context": context, "question": question}
+
+    rag_chain = prompt | llm | StrOutputParser()
+
+    response = rag_chain.invoke(input_data)
+    return context_string, response

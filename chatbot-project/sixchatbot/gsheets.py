@@ -92,7 +92,7 @@ def post_chunks(data: list[str]) -> dict[str] | None:
     gc = gspread.service_account()
     spreadsheet_id = "1e_1WA8eUGZddp9NK8ngz_IzZkNby5UcC9JhjMivEvnk"
     sheet_name = "Questions and Responses"
-    column_range_write = "C2:C"  # Replace with your data
+    column_range_write = "D2:D"  # Replace with your data
     return write_google_sheet_data(gc, spreadsheet_id, sheet_name, column_range_write, data)
 
 
@@ -108,5 +108,5 @@ def post_answers(data: list[str]) -> dict[str] | None:
     gc = gspread.service_account()
     spreadsheet_id = "1e_1WA8eUGZddp9NK8ngz_IzZkNby5UcC9JhjMivEvnk"
     sheet_name = "Questions and Responses"
-    column_range_write = "D2:D"  # Replace with your data
+    column_range_write = "E2:E"  # Replace with your data
     return write_google_sheet_data(gc, spreadsheet_id, sheet_name, column_range_write, data)
