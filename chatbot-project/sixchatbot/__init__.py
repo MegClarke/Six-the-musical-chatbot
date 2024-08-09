@@ -17,5 +17,5 @@ Exported Functions:
 - post_answers(data: list[str]) -> dict[str] | None: Posts answers to a Google Sheet.
 """
 
-from .core import load_config, get_retriever, process_question
+from .core import load_config, persist_directory_exists, get_documents, get_retriever, format_docs, process_question
 from .gsheets import get_questions, post_chunks, post_answers

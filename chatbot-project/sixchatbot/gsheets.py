@@ -56,7 +56,7 @@ def write_google_sheet_data(
         values = [[item] for item in data]
 
         # Update the specified range with the new values
-        worksheet.update(cell_range, values)
+        worksheet.update(values, cell_range)
 
         return {"status": "success"}
 
