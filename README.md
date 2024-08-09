@@ -8,6 +8,8 @@ Welcome to the GDPLabs AI/Machine Learning Projects repository! This repository 
 - Kaggle Titanic Competition
    - Environment Set-up
    - Running
+   - Testing
+- Six the Musical Chatbot
 
 
 ## Overview
@@ -36,5 +38,6 @@ This project involves exploring and attempting to solve the Kaggle Titanic compe
    cd titanic-competition
    pytest test_suite.py
 ```
+
    
 
