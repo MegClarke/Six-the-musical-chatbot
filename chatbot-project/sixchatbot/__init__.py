@@ -19,3 +19,4 @@ Exported Functions:
 
 from .core import load_config, persist_directory_exists, get_documents, get_retriever, format_docs, process_question
 from .gsheets import get_questions, post_chunks, post_answers
+from .schema import Config

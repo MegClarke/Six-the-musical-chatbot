@@ -11,12 +11,13 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from .schema import Config
+
 
 def load_config(config_file="config.yaml") -> dict:
     """Load configuration from a YAML file."""
     with open(config_file, "r", encoding="utf-8") as file:
-        return yaml.safe_load(file)
-        # return Config(**yaml.safe_load(file))
+        return Config(**yaml.safe_load(file))
 
 
 def persist_directory_exists(persist_directory: str) -> bool:
@@ -51,7 +52,7 @@ def get_documents(filename: str, chunk_size: int, chunk_overlap: int) -> list[Do
     return json_documents
 
 
-def get_retriever(config: dict, persist_directory: str) -> Chroma:
+def get_retriever(persist_directory: str, search_kwargs: dict) -> Chroma:
     """Get the retriever of the vector store in persist_directory."""
     if persist_directory_exists(persist_directory):
         vector_store = Chroma(
@@ -59,7 +60,7 @@ def get_retriever(config: dict, persist_directory: str) -> Chroma:
             persist_directory=persist_directory,
             create_collection_if_not_exists=False,
         )
-        return vector_store.as_retriever(search_type="similarity", search_kwargs={"k": config["search_kwargs"]["k"]})
+        return vector_store.as_retriever(search_type="similarity", search_kwargs=search_kwargs)
     else:
         print("Make sure to run init.py before main.py. The vector store hasn't been initialized.")
         return None

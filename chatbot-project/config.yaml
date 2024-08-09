@@ -1,13 +1,14 @@
-llm:   #
-  model_name: "gpt-4o-mini"
+llm:
+  model: "gpt-4o-mini"
+  temp: 0.001
   prompt: prompts/default.txt
 
-search_kwargs: #dictionary
+search_kwargs:
   k: 6
 
-chroma:  #attribute
+chroma:
   persist_directory: "./chroma_persist"
 
-text_splitter:  #attribute
+text_splitter:
   chunk_size: 1300
   chunk_overlap: 200
