@@ -1,4 +1,7 @@
 __pycache__/
 *.pyc
 .env
-
+*.json
+chroma_persist/
+*.txt
+.pytest_cache/
