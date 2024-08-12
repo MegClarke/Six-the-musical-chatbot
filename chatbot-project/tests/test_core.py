@@ -4,11 +4,19 @@ from unittest.mock import MagicMock, mock_open, patch
 
 from langchain.docstore.document import Document
 
-from sixchatbot import format_docs, get_documents, get_retriever, load_config, persist_directory_exists
+from sixchatbot import Config, format_docs, get_documents, get_retriever, load_config, persist_directory_exists
 
 
 @patch("builtins.open", new_callable=mock_open, read_data="test_yaml_data")
-@patch("yaml.safe_load", return_value={"key": "value"})
+@patch(
+    "yaml.safe_load",
+    return_value={
+        "llm": {"model": "gpt-4o-mini", "temp": 0.001, "prompt": "prompts/default.txt"},
+        "search_kwargs": {"k": 6},
+        "chroma": {"persist_directory": "./chroma_persist"},
+        "text_splitter": {"chunk_size": 1300, "chunk_overlap": 200},
+    },
+)
 def test_load_config(mock_safe_load, mock_open):
     """
     Test the load_config function to ensure it loads configuration from a YAML file correctly.
@@ -18,7 +26,7 @@ def test_load_config(mock_safe_load, mock_open):
     """
     config = load_config("config.yaml")
     mock_safe_load.assert_called_once()
-    assert config == {"key": "value"}
+    assert isinstance(config, Config)
 
 
 @patch("os.path.exists", return_value=True)

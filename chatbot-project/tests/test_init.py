@@ -39,7 +39,7 @@ def mock_documents():
 @patch("init.OpenAIEmbeddings")
 @patch("init.Chroma.from_documents")
 def test_initialize_vector_store(
-    mock_from_documents, mock_openai_embeddings, mock_get_documents, mock_documents, mock_config
+    mock_from_documents, mock_openai_embeddings, mock_get_documents, mock_documents, mock_load_config
 ):
     """
     Test the initialize_vector_store function to ensure it calls the appropriate methods
@@ -49,13 +49,13 @@ def test_initialize_vector_store(
         mock_get_documents (MagicMock): Mock for get_documents function.
         mock_openai_embeddings (MagicMock): Mock for OpenAIEmbeddings class.
         mock_from_documents (MagicMock): Mock for Chroma.from_documents method.
-        mock_config (dict): Mock configuration dictionary.
         mock_documents (list): List of mock documents.
+        mock_load_config (Config): Mock configuration object.
     """
     mock_get_documents.return_value = mock_documents
     mock_openai_embeddings.return_value = MagicMock()
 
-    init.initialize_vector_store("test_directory", mock_config)
+    init.initialize_vector_store("test_directory", mock_load_config.return_value)
 
     mock_get_documents.assert_called_once_with("documents.json", 100, 10)
     mock_openai_embeddings.assert_called_once_with(model="text-embedding-ada-002")
