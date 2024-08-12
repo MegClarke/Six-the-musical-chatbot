@@ -19,7 +19,8 @@ def main():
     llm = ChatOpenAI(model_name=config.llm.model, temperature=config.llm.temp)
     prompt = PromptTemplate.from_file(config.llm.prompt)
 
-    questions = sixchatbot.get_questions()
+    sheet_name = "Trial 2"
+    questions = sixchatbot.get_questions(sheet_name)
     retrieved_chunks = []
     outputs = []
 
@@ -31,8 +32,8 @@ def main():
     print(retrieved_chunks)
     print(outputs)
 
-    sixchatbot.post_chunks(retrieved_chunks)
-    sixchatbot.post_answers(outputs)
+    sixchatbot.post_chunks(sheet_name, retrieved_chunks)
+    sixchatbot.post_answers(sheet_name, outputs)
 
 
 if __name__ == "__main__":

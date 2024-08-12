@@ -8,8 +8,13 @@ from langchain_openai import OpenAIEmbeddings
 import sixchatbot
 
 
-def initialize_vector_store(persist_directory, config):
-    """Initialize the vector store."""
+def initialize_vector_store(persist_directory: str, config: sixchatbot.Config):
+    """Initialize the vector store.
+
+    Args:
+        persist_directory (str): The directory where the vector store is persisted.
+        config (sixchatbot.Config): The configuration settings for the chatbot.
+    """
     documents = sixchatbot.get_documents(
         "documents.json", config.text_splitter.chunk_size, config.text_splitter.chunk_overlap
     )

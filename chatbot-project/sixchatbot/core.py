@@ -11,17 +11,32 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from ..init import init
 from .schema import Config
 
 
 def load_config(config_file="config.yaml") -> dict:
-    """Load configuration from a YAML file."""
+    """Load configuration from a YAML file.
+
+    Args:
+        config_file (str): The path to the configuration file. Defaults to "config.yaml".
+
+    Returns:
+        dict: The configuration settings.
+    """
     with open(config_file, "r", encoding="utf-8") as file:
         return Config(**yaml.safe_load(file))
 
 
 def persist_directory_exists(persist_directory: str) -> bool:
-    """Check if the persist directory exists and is not empty."""
+    """Check if the persist directory exists and is not empty.
+
+    Args:
+        persist_directory (str): The directory where the vector store is persisted.
+
+    Returns:
+        bool: True if the directory exists and is not empty, False otherwise.
+    """
     return os.path.exists(persist_directory) and os.listdir(persist_directory)
 
 
@@ -30,6 +45,8 @@ def get_documents(filename: str, chunk_size: int, chunk_overlap: int) -> list[Do
 
     Args:
         filename (str): The path to the JSON file containing documents.
+        chunk_size (int): The size of the chunks to split the documents into.
+        chunk_overlap (int): The overlap between chunks.
 
     Returns:
         List[Document]: A list of Document objects split into smaller chunks.
@@ -53,21 +70,35 @@ def get_documents(filename: str, chunk_size: int, chunk_overlap: int) -> list[Do
 
 
 def get_retriever(persist_directory: str, search_kwargs: dict) -> Chroma:
-    """Get the retriever of the vector store in persist_directory."""
-    if persist_directory_exists(persist_directory):
-        vector_store = Chroma(
-            embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002"),
-            persist_directory=persist_directory,
-            create_collection_if_not_exists=False,
-        )
-        return vector_store.as_retriever(search_type="similarity", search_kwargs=search_kwargs)
-    else:
-        print("Make sure to run init.py before main.py. The vector store hasn't been initialized.")
-        return None
+    """Get the retriever of the vector store in persist_directory.
+
+    Args:
+        persist_directory (str): The directory where the vector store is located.
+        search_kwargs (dict): Search keyword arguments configured in config.yaml.
+
+    Returns:
+        Chroma: The ChromaDB retriever instance.
+    """
+    if persist_directory_exists(persist_directory) is False:
+        print("The persist directory is empty. init script will be run.")
+        init.init()
+    vector_store = Chroma(
+        embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002"),
+        persist_directory=persist_directory,
+        create_collection_if_not_exists=False,
+    )
+    return vector_store.as_retriever(search_type="similarity", search_kwargs=search_kwargs)
 
 
 def format_docs(docs: list[Document]) -> str:
-    """Format a list of Document objects into a single string."""
+    """Format a list of Document objects into a single string.
+
+    Args:
+        docs (List[Document]): A list of Document objects.
+
+    Returns:
+        str: A string containing the contents of all the documents seperated by a blank line.
+    """
     return "\n\n".join(doc.page_content for doc in docs)
 
 
@@ -79,8 +110,9 @@ def process_question(question: str, retriever: Chroma, prompt: PromptTemplate, l
         retriever (Retriever): The retriever instance to use.
         prompt (PromptTemplate): The prompt template instance to use.
         llm (ChatOpenAI): The language model instance to use.
-        retrieved_chunks (list): The list to store the retrieved chunks.
-        outputs (list): The list to store the outputs.
+
+    Returns:
+        tuple[str, str]: A tuple containing the retrieved context (chunks) and the generated response of the query.
     """
     context = retriever.invoke(question)
 
