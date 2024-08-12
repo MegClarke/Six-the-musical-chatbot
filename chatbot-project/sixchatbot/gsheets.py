@@ -70,7 +70,7 @@ def get_questions(sheetname: str) -> list[str]:
     gc = gspread.service_account()
     spreadsheet_id = "1e_1WA8eUGZddp9NK8ngz_IzZkNby5UcC9JhjMivEvnk"
     sheet_name = sheetname
-    column_range_read = "B2:B"
+    column_range_read = "B2:B21"
     data = get_google_sheet_data(gc, spreadsheet_id, sheet_name, column_range_read)
     return [item[0] for item in data] if data else []
 

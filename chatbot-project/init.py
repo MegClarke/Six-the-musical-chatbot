@@ -8,16 +8,15 @@ from langchain_openai import OpenAIEmbeddings
 import sixchatbot
 
 
-def initialize_vector_store(persist_directory: str, config: sixchatbot.Config):
+def initialize_vector_store(files: list[str], persist_directory: str, config: sixchatbot.Config):
     """Initialize the vector store.
 
     Args:
+        files (list[str]): The list of files to load and split into documents
         persist_directory (str): The directory where the vector store is persisted.
         config (sixchatbot.Config): The configuration settings for the chatbot.
     """
-    documents = sixchatbot.get_documents(
-        "documents.json", config.text_splitter.chunk_size, config.text_splitter.chunk_overlap
-    )
+    documents = sixchatbot.get_documents(files, config.text_splitter.chunk_size, config.text_splitter.chunk_overlap)
 
     Chroma.from_documents(
         documents=documents,
@@ -39,7 +38,9 @@ def init():
               Persist directory {persist_directory!r} already contains data."
         )
         return
-    initialize_vector_store(persist_directory, config)
+
+    files = ["documents.json", "tables.json"]
+    initialize_vector_store(files, persist_directory, config)
 
 
 if __name__ == "__main__":
