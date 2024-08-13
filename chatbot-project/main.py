@@ -1,5 +1,7 @@
 """This module handles the main functionality of prompting the chatbot."""
 
+import os
+
 from dotenv import load_dotenv
 from langchain.prompts import PromptTemplate
 from langchain_chroma import Chroma
@@ -45,13 +47,17 @@ def main():
     update_vector_store(files, persist_directory, config)
     """
 
-    retriever = sixchatbot.get_retriever(persist_directory, search_kwargs)
+    retriever = sixchatbot.get_retriever(persist_directory=persist_directory, search_kwargs=search_kwargs)
 
     llm = ChatOpenAI(model_name=config.llm.model, temperature=config.llm.temp)
     prompt = PromptTemplate.from_file(config.llm.prompt)
 
-    sheet_name = "Trial 2"
-    questions = sixchatbot.get_questions(sheet_name)
+    spreadsheet_id = os.getenv("SHEET_ID")
+    sheet_name = "Trial 4"
+
+    qa_db = sixchatbot.QADatabase(spreadsheet_id=spreadsheet_id, sheet_name=sheet_name)
+
+    questions = qa_db.get_questions()
     retrieved_chunks = []
     outputs = []
 
@@ -60,8 +66,8 @@ def main():
         retrieved_chunks.append(context_string)
         outputs.append(response)
 
-    sixchatbot.post_chunks(sheet_name, retrieved_chunks)
-    sixchatbot.post_answers(sheet_name, outputs)
+    qa_db.post_chunks(retrieved_chunks)
+    qa_db.post_answers(outputs)
 
 
 if __name__ == "__main__":

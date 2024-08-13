@@ -106,7 +106,7 @@ def format_docs(docs: list[Document]) -> str:
     Returns:
         str: A string containing the contents of all the documents seperated by a blank line.
     """
-    return "\n\n".join(doc.page_content for doc in docs)
+    return "\n---\n".join(doc.page_content for doc in docs)
 
 
 def process_question(question: str, retriever: Chroma, prompt: PromptTemplate, llm: ChatOpenAI) -> tuple[str, str]:
