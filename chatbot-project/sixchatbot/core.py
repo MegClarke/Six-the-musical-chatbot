@@ -6,6 +6,8 @@ import os
 import yaml
 from langchain.docstore.document import Document
 from langchain.prompts import PromptTemplate
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import FlashrankRerank
 from langchain_chroma import Chroma
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -120,6 +122,12 @@ def process_question(question: str, retriever: Chroma, prompt: PromptTemplate, l
 
     Returns:
         tuple[str, str]: A tuple containing the retrieved context (chunks) and the generated response of the query.
+    """
+    """
+    compressor = FlashrankRerank(top_n=8)
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=compressor, base_retriever=retriever
+    )
     """
     context = retriever.invoke(question)
 

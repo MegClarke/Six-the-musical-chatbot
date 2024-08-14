@@ -1,10 +1,10 @@
 llm:
   model: "gpt-4o-mini"
   temp: 0.001
-  prompt: prompts/default.txt
+  prompt: prompts/trial4.txt
 
 search_kwargs:
-  k: 10
+  k: 15
 
 chroma:
   persist_directory: "./chroma_persist"
