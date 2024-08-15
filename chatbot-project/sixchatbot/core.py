@@ -14,7 +14,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from .helper import format_docs, get_documents, persist_directory_exists
+from .helper import format_docs, get_documents, get_files, persist_directory_exists
 from .schema import Config
 
 
@@ -88,9 +88,12 @@ def get_retriever(config: Config) -> Chroma:
     """
     persist_directory = config.chroma.persist_directory
     search_kwargs = config.search_kwargs
+    directory_path = config.context_directory
+
+    file_paths = get_files(directory_path)
 
     if persist_directory_exists(persist_directory) is False:
-        initialize_vector_store(files=["documents.json", "tables.json"], config=config)
+        initialize_vector_store(files=file_paths, config=config)
     vector_store = Chroma(
         embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002"),
         persist_directory=persist_directory,
@@ -112,7 +115,7 @@ def process_question(question: str, retriever: Chroma, prompt: PromptTemplate, l
         tuple[str, str]: A tuple containing the retrieved context (chunks) and the generated response of the query.
     """
     context = retriever.invoke(question)
-    paired_contexts = [[question, chunk] for chunk in context]
+    paired_contexts = [[question, str(chunk)] for chunk in context]
 
     reranker = FlagReranker("BAAI/bge-reranker-large", use_fp16=True)
 

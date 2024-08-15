@@ -4,10 +4,8 @@ import json
 import os
 
 from dotenv import load_dotenv
-from langchain.docstore.document import Document
 from langchain.prompts import PromptTemplate
-from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
 
 import sixchatbot
 
@@ -24,7 +22,7 @@ def main():
     prompt = PromptTemplate.from_file(config.llm.prompt)
 
     spreadsheet_id = os.getenv("SHEET_ID")
-    sheet_name = "Trial 4"
+    sheet_name = "Trial 6"
 
     qa_db = sixchatbot.QADatabase(spreadsheet_id=spreadsheet_id, sheet_name=sheet_name)
 

@@ -19,6 +19,22 @@ def persist_directory_exists(persist_directory: str) -> bool:
     return os.path.exists(persist_directory) and os.listdir(persist_directory)
 
 
+def get_files(directory: str) -> list[str]:
+    """Get a list of JSON files from a directory.
+
+    Args:
+        directory (str): The directory path containing the JSON files.
+
+    Returns:
+        list[str]: A list of JSON filepaths.
+    """
+    return [
+        os.path.join(directory, file)
+        for file in os.listdir(directory)
+        if os.path.isfile(os.path.join(directory, file)) and file.endswith(".json")
+    ]
+
+
 def get_documents(files: list[str], chunk_size: int, chunk_overlap: int) -> list[Document]:
     """Load and split documents from a JSON file.
 
