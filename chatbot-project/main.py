@@ -10,6 +10,29 @@ from langchain_openai import ChatOpenAI
 import sixchatbot
 
 
+def query_chatbot(question: str):
+    """Query the chatbot with a question.
+
+    Args:
+        question (str): The question to ask the chatbot.
+
+    Returns:
+        str: The response from the chatbot.
+    """
+    load_dotenv()
+
+    config = sixchatbot.load_config()
+
+    retriever = sixchatbot.get_retriever(config=config)
+
+    llm = ChatOpenAI(model_name=config.llm.model, temperature=config.llm.temp)
+    prompt = PromptTemplate.from_file(config.llm.prompt)
+
+    context_string, response = sixchatbot.process_question(question, retriever, prompt, llm)
+
+    return response
+
+
 def main():
     """Main function for the chatbot."""
     load_dotenv()
@@ -22,7 +45,7 @@ def main():
     prompt = PromptTemplate.from_file(config.llm.prompt)
 
     spreadsheet_id = os.getenv("SHEET_ID")
-    sheet_name = "Trial 6"
+    sheet_name = "Trial 11"
 
     qa_db = sixchatbot.QADatabase(spreadsheet_id=spreadsheet_id, sheet_name=sheet_name)
 

@@ -3,7 +3,7 @@ context_directory: "contexts"
 llm:
   model: "gpt-4o-mini"
   temp: 0.001
-  prompt: prompts/trial4.txt
+  prompt: prompts/final-prompt.txt
 
 search_kwargs:
   k: 15
