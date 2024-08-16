@@ -1,6 +1,7 @@
 """FastAPI application for the chatbot project."""
-import main
 from fastapi import FastAPI
+
+import main
 
 app = FastAPI()
 
