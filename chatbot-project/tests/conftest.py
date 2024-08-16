@@ -15,6 +15,7 @@ def mock_load_config():
     """Fixture that mocks the `load_config` function and returns a dictionary with mock values."""
     with patch("sixchatbot.load_config") as mock_load_config:
         mock_load_config.return_value = Config(
+            context_directory="contexts",
             text_splitter={
                 "chunk_size": 100,
                 "chunk_overlap": 10,

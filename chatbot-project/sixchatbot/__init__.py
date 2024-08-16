@@ -20,6 +20,15 @@ Exported Class from schema.py:
 - Config: A dataclass representing the configuration schema.
 """
 
-from .core import load_config, initialize_vector_store, update_vector_store, get_retriever, process_question
+from .core import (
+    Chroma,
+    OpenAIEmbeddings,
+    load_config,
+    initialize_vector_store,
+    update_vector_store,
+    get_retriever,
+    process_question,
+)
+from .helper import persist_directory_exists, get_files, get_documents
 from .gsheets import QADatabase
 from .schema import Config
