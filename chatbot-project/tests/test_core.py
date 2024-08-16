@@ -6,22 +6,30 @@ import pytest
 from langchain.docstore.document import Document
 
 from sixchatbot.core import get_retriever, initialize_vector_store, load_config, update_vector_store
-from sixchatbot.helper import get_documents
 from sixchatbot.schema import Config
 
 
 @pytest.fixture
 def mock_config(mock_load_config):
+    """
+    Fixture that provides a mock configuration object.
+
+    Args:
+        mock_load_config (fixture): Fixture for mocking the load_config function.
+
+    Returns:
+        Config: Mocked configuration object.
+    """
     return mock_load_config.return_value
 
 
 @pytest.fixture
 def mock_documents():
     """
-    Provides a list of mock documents.
+    Fixture that provides a list of mock documents.
 
     Returns:
-        list: List containing a mock document dictionary.
+        list: List of dictionaries, each representing a mock document.
     """
     return [{"text": "Sample document 1"}, {"text": "Sample document 2"}]
 
@@ -39,39 +47,44 @@ def mock_documents():
 )
 def test_load_config(mock_safe_load, mock_open):
     """
-    Test the load_config function to ensure it loads configuration from a YAML file correctly.
+    Test the load_config function to ensure it loads the configuration from a YAML file correctly.
+
     Args:
         mock_safe_load (MagicMock): Mock for yaml.safe_load function.
         mock_open (MagicMock): Mock for builtins.open function.
+
+    Asserts:
+        The load_config function returns an instance of the Config class.
     """
     config = load_config("config.yaml")
     mock_safe_load.assert_called_once()
     assert isinstance(config, Config)
 
 
-@patch("sixchatbot.get_documents")
+@patch("sixchatbot.core.get_documents")
 @patch("sixchatbot.core.OpenAIEmbeddings")
 @patch("sixchatbot.core.Chroma")
 def test_initialize_vector_store(mock_chroma, mock_embeddings, mock_get_documents, mock_documents, mock_config):
     """
-    Test the initialize_vector_store function to ensure it calls the appropriate methods
-    with the correct arguments when initializing the vector store.
+    Test the initialize_vector_store function to ensure it correctly initializes the vector store.
 
     Args:
         mock_get_documents (MagicMock): Mock for get_documents function.
-        mock_openai_embeddings (MagicMock): Mock for OpenAIEmbeddings class.
-        mock_from_documents (MagicMock): Mock for Chroma.from_documents method.
+        mock_embeddings (MagicMock): Mock for OpenAIEmbeddings class.
+        mock_chroma (MagicMock): Mock for Chroma class.
         mock_documents (list): List of mock documents.
         mock_config (Config): Mock configuration object.
+
+    Asserts:
+        The initialize_vector_store function calls get_documents, OpenAIEmbeddings,
+        and Chroma.from_documents with the correct arguments.
     """
     mock_files = ["file1.txt", "file2.txt"]
     mock_get_documents.return_value = mock_documents
     mock_embeddings.return_value = MagicMock()
 
-    # Act
     initialize_vector_store(mock_files, mock_config)
 
-    # Assert
     mock_get_documents.assert_called_once_with(
         mock_files, mock_config.text_splitter.chunk_size, mock_config.text_splitter.chunk_overlap
     )
@@ -83,59 +96,91 @@ def test_initialize_vector_store(mock_chroma, mock_embeddings, mock_get_document
     )
 
 
-@patch("sixchatbot.initialize_vector_store")
-@patch("sixchatbot.persist_directory_exists", return_value=False)
+@patch("sixchatbot.core.persist_directory_exists", return_value=False)
+@patch("sixchatbot.core.initialize_vector_store")
 def test_update_vector_store_initializes_if_not_exists(
     mock_initialize_vector_store, mock_persist_directory_exists, mock_config
 ):
+    """
+    Test the update_vector_store function to ensure it initializes the vector store
+    if the persist directory does not exist.
+
+    Args:
+        mock_initialize_vector_store (MagicMock): Mock for initialize_vector_store function.
+        mock_persist_directory_exists (MagicMock): Mock for persist_directory_exists function.
+        mock_config (Config): Mock configuration object.
+
+    Asserts:
+        The initialize_vector_store function is called if the persist directory does not exist.
+    """
     mock_files = ["file1.txt", "file2.txt"]
 
     update_vector_store(mock_files, mock_config)
 
-    mock_persist_directory_exists.assert_called_once_with("test_directory")
+    mock_persist_directory_exists.assert_called_once_with(mock_config.chroma.persist_directory)
     mock_initialize_vector_store.assert_called_once_with(mock_files, mock_config)
 
 
-@patch("sixchatbot.get_documents")
-@patch("sixchatbot.persist_directory_exists", return_value=True)
-@patch("sixchatbot.Chroma")
-@patch("sixchatbot.OpenAIEmbeddings")
+@patch("sixchatbot.core.get_documents")
+@patch("sixchatbot.core.persist_directory_exists", return_value=True)
+@patch("sixchatbot.core.Chroma")
+@patch("sixchatbot.core.OpenAIEmbeddings")
 def test_update_vector_store_adds_documents(
     mock_embeddings, mock_chroma, mock_persist_directory_exists, mock_get_documents, mock_documents, mock_config
 ):
-    # Arrange
+    """
+    Test the update_vector_store function to ensure it adds documents to an existing vector store.
+
+    Args:
+        mock_embeddings (MagicMock): Mock for OpenAIEmbeddings class.
+        mock_chroma (MagicMock): Mock for Chroma class.
+        mock_persist_directory_exists (MagicMock): Mock for persist_directory_exists function.
+        mock_get_documents (MagicMock): Mock for get_documents function.
+        mock_documents (list): List of mock documents.
+        mock_config (Config): Mock configuration object.
+
+    Asserts:
+        Documents are added to an existing vector store if the persist directory exists.
+    """
     mock_files = ["file1.txt", "file2.txt"]
     mock_get_documents.return_value = mock_documents
     mock_vector_store = MagicMock()
     mock_chroma.return_value = mock_vector_store
 
-    # Act
     update_vector_store(mock_files, mock_config)
 
-    # Assert
-    mock_persist_directory_exists.assert_called_once_with("test_directory")
-    mock_get_documents.assert_called_once_with(mock_files, 100, 10)
+    mock_persist_directory_exists.assert_called_once_with(mock_config.chroma.persist_directory)
+    mock_get_documents.assert_called_once_with(
+        mock_files, mock_config.text_splitter.chunk_size, mock_config.text_splitter.chunk_overlap
+    )
     mock_chroma.assert_called_once_with(
         embedding_function=mock_embeddings.return_value,
-        persist_directory="test_directory",
+        persist_directory=mock_config.chroma.persist_directory,
         create_collection_if_not_exists=False,
     )
     mock_vector_store.add_documents.assert_called_once_with(mock_documents)
     mock_embeddings.assert_called_once_with(model="text-embedding-ada-002")
 
 
+@patch("sixchatbot.core.get_files", return_value=["file1.txt", "file2.txt"])
 @patch("sixchatbot.core.persist_directory_exists", return_value=True)
 @patch("sixchatbot.core.Chroma")
 @patch("sixchatbot.core.OpenAIEmbeddings")
 def test_get_retriever_existing_directory(
-    mock_openai_embeddings, mock_chroma, mock_persist_directory_exists, mock_config
+    mock_openai_embeddings, mock_chroma, mock_persist_directory_exists, mock_get_files, mock_config
 ):
     """
-    Test the get_retriever function when the persist directory exists to ensure it corerectly initializes the retriever.
+    Test the get_retriever function when the persist directory exists to ensure it correctly initializes the retriever.
+
     Args:
         mock_openai_embeddings (MagicMock): Mock for OpenAIEmbeddings class.
         mock_chroma (MagicMock): Mock for Chroma class.
         mock_persist_directory_exists (MagicMock): Mock for persist_directory_exists function.
+        mock_get_files (MagicMock): Mock for get_files function.
+        mock_config (Config): Mock configuration object.
+
+    Asserts:
+        The get_retriever function initializes the retriever when the persist directory exists.
     """
     mock_chroma_instance = mock_chroma.return_value
     retriever_instance = MagicMock()
@@ -149,19 +194,46 @@ def test_get_retriever_existing_directory(
         persist_directory=mock_config.chroma.persist_directory,
         create_collection_if_not_exists=False,
     )
-    mock_chroma_instance.as_retriever.assert_called_once_with(search_type="similarity", search_kwargs={"k": 10})
+    mock_chroma_instance.as_retriever.assert_called_once_with(
+        search_type="similarity", search_kwargs={"k": mock_config.search_kwargs["k"]}
+    )
     assert retriever == retriever_instance
 
 
+@patch("sixchatbot.core.get_files", return_value=["file1.txt", "file2.txt"])
 @patch("sixchatbot.core.persist_directory_exists", return_value=False)
-def test_get_retriever_non_existing_directory(mock_persist_directory_exists, mock_config):
+@patch("sixchatbot.core.initialize_vector_store")
+@patch("sixchatbot.core.Chroma")
+@patch("sixchatbot.core.OpenAIEmbeddings")
+def test_get_retriever_non_existing_directory(
+    mock_openai_embeddings,
+    mock_chroma,
+    mock_initialize_vector_store,
+    mock_persist_directory_exists,
+    mock_get_files,
+    mock_config,
+):
     """
-    Test the get_retriever function when the persist directory does not exist to ensure it returns None.
-    Args:
-        mock_persist_directory_exists (MagicMock): Mock for persist_directory_exists function.
-    """
+    Test the get_retriever function when the persist directory does not exist to ensure it initializes the vector store.
 
-    retriever = get_retriever(mock_config)
+    Args:
+        mock_openai_embeddings (MagicMock): Mock for OpenAIEmbeddings class.
+        mock_chroma (MagicMock): Mock for Chroma class.
+        mock_initialize_vector_store (MagicMock): Mock for initialize_vector_store function.
+        mock_persist_directory_exists (MagicMock): Mock for persist_directory_exists function.
+        mock_get_files (MagicMock): Mock for get_files function.
+        mock_config (Config): Mock configuration object.
+
+    Asserts:
+        The get_retriever function initializes the vector store when the persist directory does not exist.
+    """
+    mock_files = mock_get_files.return_value
+    get_retriever(mock_config)
 
     mock_persist_directory_exists.assert_called_once_with(mock_config.chroma.persist_directory)
-    assert retriever is None
+    mock_chroma.assert_called_once_with(
+        embedding_function=mock_openai_embeddings(model="text-embedding-ada-002"),
+        persist_directory=mock_config.chroma.persist_directory,
+        create_collection_if_not_exists=False,
+    )
+    mock_initialize_vector_store.assert_called_once_with(files=mock_files, config=mock_config)

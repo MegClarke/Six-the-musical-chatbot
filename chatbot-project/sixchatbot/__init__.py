@@ -21,8 +21,6 @@ Exported Class from schema.py:
 """
 
 from .core import (
-    Chroma,
-    OpenAIEmbeddings,
     load_config,
     initialize_vector_store,
     update_vector_store,
