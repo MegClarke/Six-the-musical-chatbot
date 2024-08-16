@@ -44,12 +44,14 @@ class Config(BaseModel):
     """Main configuration schema combining various sub-schemas.
 
     Attributes:
+        context_directory (str): The directory path where the context data files are stored.
         llm (LlmSchema): The configuration settings for the LLM.
         search_kwargs (dict[str, int]): A dictionary of search parameters with string keys and integer values.
         chroma (ChromaSchema): The configuration settings for Chroma.
         text_splitter (TextSplitterSchema): The configuration settings for the text splitter.
     """
 
+    context_directory: str
     llm: LlmSchema
     search_kwargs: dict[str, int]
     chroma: ChromaSchema

@@ -1,10 +1,12 @@
+context_directory: "contexts"
+
 llm:
   model: "gpt-4o-mini"
   temp: 0.001
-  prompt: prompts/default.txt
+  prompt: prompts/final-prompt.txt
 
 search_kwargs:
-  k: 6
+  k: 15
 
 chroma:
   persist_directory: "./chroma_persist"
