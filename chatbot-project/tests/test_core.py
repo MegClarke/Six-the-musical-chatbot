@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, mock_open, patch
 import pytest
 from langchain.docstore.document import Document
 
-from sixchatbot.core import get_retriever, initialize_vector_store, load_config, update_vector_store
+from sixchatbot.core import get_retriever, initialize_vector_store, load_config, process_question, update_vector_store
 from sixchatbot.schema import Config
 
 
@@ -237,3 +237,115 @@ def test_get_retriever_non_existing_directory(
         create_collection_if_not_exists=False,
     )
     mock_initialize_vector_store.assert_called_once_with(files=mock_files, config=mock_config)
+
+
+@patch("sixchatbot.core.FlagReranker")
+@patch("sixchatbot.core.format_docs")
+@patch("sixchatbot.core.StrOutputParser")
+@patch("main.PromptTemplate")
+@patch("main.ChatOpenAI")
+def test_process_question(mock_llm, mock_prompt_template, mock_parser, mock_format_docs, mock_flag_reranker):
+    """
+    Test the process_question function to ensure it correctly processes a question using the retriever,
+    reranker, and the RAG chain.
+
+    Args:
+        mock_format_docs (MagicMock): Mock for format_docs function.
+        mock_flag_reranker (MagicMock): Mock for FlagReranker class.
+
+    Asserts:
+        The function returns the expected context string and response.
+    """
+    # Mock inputs
+    mock_question = "What is the capital of France?"
+    mock_retriever = MagicMock()
+    mock_prompt = mock_prompt_template.from_file.return_value
+    mock_documents = [
+        Document(page_content="Paris is the capital of France.", metadata={"source": "doc1"}),
+        Document(page_content="Paris is the largest city in France.", metadata={"source": "doc2"}),
+    ]
+
+    mock_retriever.invoke.return_value = mock_documents
+
+    # Mock the reranker behavior
+    mock_reranker_instance = mock_flag_reranker.return_value
+    mock_reranker_instance.compute_score.return_value = [0.9, 0.8]
+
+    mock_format_docs.return_value = "Formatted documents."
+    expected_input_data = {"context": mock_format_docs.return_value, "question": mock_question}
+
+    # Mock the RAG chain behavior
+    mock_rag_chain = mock_prompt | mock_llm | mock_parser
+    mock_rag_chain.invoke.return_value = "Paris is the capital of France."
+
+    # Act
+    context_string, response = process_question(mock_question, mock_retriever, mock_prompt, mock_llm)
+
+    # Assert
+    mock_retriever.invoke.assert_called_once_with(mock_question)
+    mock_reranker_instance.compute_score.assert_called_once()
+    mock_format_docs.assert_called_once_with(mock_documents)
+    mock_rag_chain.invoke.assert_called_once_with(expected_input_data)
+
+    expected_context_string = (
+        "{'source': 'doc1'}\nParis is the capital of France.\n\n"
+        "{'source': 'doc2'}\nParis is the largest city in France."
+    )
+    assert context_string == expected_context_string
+    assert response == "Paris is the capital of France."
+
+
+@patch("sixchatbot.core.FlagReranker")
+@patch("sixchatbot.core.format_docs")
+@patch("sixchatbot.core.StrOutputParser")
+@patch("main.PromptTemplate")
+@patch("main.ChatOpenAI")
+def test_process_question_reranker_sorting(
+    mock_llm, mock_prompt_template, mock_parser, mock_format_docs, mock_flag_reranker
+):
+    """
+    Test the process_question function to ensure it correctly sorts the documents based on reranker scores.
+
+    Args:
+        mock_format_docs (MagicMock): Mock for format_docs function.
+        mock_flag_reranker (MagicMock): Mock for FlagReranker class.
+
+    Asserts:
+        The function sorts the documents correctly and returns the expected context string.
+    """
+    # Mock inputs
+    mock_question = "What is the capital of France?"
+    mock_retriever = MagicMock()
+    mock_prompt = mock_prompt_template.from_file.return_value
+    mock_documents = [
+        Document(page_content="Paris is the capital of France.", metadata={"source": "doc1"}),
+        Document(page_content="Lyon is a city in France.", metadata={"source": "doc2"}),
+        Document(page_content="Marseille is a port city in France.", metadata={"source": "doc3"}),
+    ]
+
+    mock_retriever.invoke.return_value = mock_documents
+
+    # Mock the reranker behavior
+    mock_reranker_instance = mock_flag_reranker.return_value
+    mock_reranker_instance.compute_score.return_value = [0.5, 0.9, 0.7]
+
+    mock_format_docs.return_value = "Formatted documents."
+
+    # Mock the RAG chain behavior
+    mock_rag_chain = mock_prompt | mock_llm | mock_parser
+    mock_rag_chain.invoke.return_value = "Paris is the capital of France."
+
+    # Act
+    context_string, response = process_question(mock_question, mock_retriever, mock_prompt, mock_llm)
+
+    # Assert
+    mock_retriever.invoke.assert_called_once_with(mock_question)
+    mock_reranker_instance.compute_score.assert_called_once()
+
+    expected_context_string = (
+        "{'source': 'doc2'}\nLyon is a city in France.\n\n"
+        "{'source': 'doc3'}\nMarseille is a port city in France.\n\n"
+        "{'source': 'doc1'}\nParis is the capital of France."
+    )
+    assert context_string == expected_context_string
+    assert response == "Paris is the capital of France."
