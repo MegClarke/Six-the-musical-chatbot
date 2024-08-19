@@ -1,6 +1,4 @@
 """FastAPI application for the chatbot project."""
-from typing import AsyncGenerator
-
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -33,7 +31,7 @@ class QuestionInput(BaseModel):
     question: str
 
 
-@app.put(
+@app.post(
     "/query",
     tags=["query"],
     summary="Query the Chatbot",
