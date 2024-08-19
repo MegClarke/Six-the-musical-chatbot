@@ -1,7 +1,7 @@
 """This module handles the main functionality of prompting the chatbot."""
 
-import json
 import os
+from typing import AsyncGenerator
 
 from dotenv import load_dotenv
 from langchain.prompts import PromptTemplate
@@ -10,14 +10,14 @@ from langchain_openai import ChatOpenAI
 import sixchatbot
 
 
-def query_chatbot(question: str):
+async def query_chatbot(question: str) -> AsyncGenerator[str, None]:
     """Query the chatbot with a question.
 
     Args:
         question (str): The question to ask the chatbot.
 
-    Returns:
-        str: The response from the chatbot.
+    Yields:
+        str: Chunks of the response from the chatbot.
     """
     load_dotenv()
 
@@ -25,12 +25,12 @@ def query_chatbot(question: str):
 
     retriever = sixchatbot.get_retriever(config=config)
 
-    llm = ChatOpenAI(model_name=config.llm.model, temperature=config.llm.temp)
+    llm = ChatOpenAI(model_name=config.llm.model, temperature=config.llm.temp, streaming=True)
     prompt = PromptTemplate.from_file(config.llm.prompt)
 
-    context_string, response = sixchatbot.process_question(question, retriever, prompt, llm)
-
-    return response
+    # Stream the response using the async generator
+    async for chunk in sixchatbot.process_question_async(question, retriever, prompt, llm):
+        yield chunk
 
 
 def main():

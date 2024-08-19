@@ -26,6 +26,7 @@ from .core import (
     update_vector_store,
     get_retriever,
     process_question,
+    process_question_async,
 )
 from .helper import persist_directory_exists, get_files, get_documents
 from .gsheets import QADatabase

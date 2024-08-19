@@ -1,6 +1,11 @@
 """FastAPI application for the chatbot project."""
-import main
+from typing import AsyncGenerator
+
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
+import main
 
 app = FastAPI()
 
@@ -22,12 +27,18 @@ async def health():
     return {"status": "OK"}
 
 
-@app.get(
-    "/query/{question}",
+class QuestionInput(BaseModel):
+    """Pydantic model for the question input."""
+
+    question: str
+
+
+@app.put(
+    "/query",
     tags=["query"],
     summary="Query the Chatbot",
-    response_description="Return the response of the chatbot",
+    response_description="Stream the response of the chatbot",
 )
-async def query_chatbot(question: str):
+async def query_chatbot_endpoint(question_input: QuestionInput):
     """Query the chatbot with a question."""
-    return {"response": main.query_chatbot(question)}
+    return StreamingResponse(main.query_chatbot(question_input.question), media_type="text/plain")

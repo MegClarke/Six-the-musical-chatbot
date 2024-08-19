@@ -2,6 +2,7 @@
 
 import json
 import os
+from typing import AsyncGenerator
 
 import yaml
 from FlagEmbedding import FlagReranker
@@ -10,6 +11,7 @@ from langchain.prompts import PromptTemplate
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import FlashrankRerank
 from langchain_chroma import Chroma
+from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -135,3 +137,38 @@ def process_question(question: str, retriever: Chroma, prompt: PromptTemplate, l
 
     response = rag_chain.invoke(input_data)
     return context_string, response
+
+
+async def process_question_async(
+    question: str, retriever: Chroma, prompt: PromptTemplate, llm: ChatOpenAI
+) -> AsyncGenerator[str, None]:
+    """Process a question by invoking the retriever and the RAG chain with streaming.
+
+    Args:
+        question (str): The question to process.
+        retriever (Retriever): The retriever instance to use.
+        prompt (PromptTemplate): The prompt template instance to use.
+        llm (ChatOpenAI): The language model instance to use.
+
+    Yields:
+        str: Chunks of the generated response.
+    """
+    context = retriever.invoke(question)
+    paired_contexts = [[question, str(chunk)] for chunk in context]
+
+    reranker = FlagReranker("BAAI/bge-reranker-large", use_fp16=True)
+
+    scores = reranker.compute_score(paired_contexts)
+    scored_contexts = list(zip(scores, context, strict=True))
+    scored_contexts.sort(reverse=True, key=lambda x: x[0])
+    top_scored_contexts = scored_contexts[:10]
+    context = [chunk for _, chunk in top_scored_contexts]
+
+    context = format_docs(context)
+    input_data = {"context": context, "question": question}
+
+    rag_input = prompt.invoke(input_data)
+
+    message = HumanMessage(content=str(rag_input))
+    async for chunk in llm.astream([message]):
+        yield chunk.content
