@@ -20,7 +20,7 @@ A RAG-based chatbot meant to help fans of "Six the musical" learn about the char
 2. Run the RAG pipeline: `python main.py`
 
 ### Using the Chatbot
-1. run `fastapi dev fastapi.py`
+1. run `fastapi dev app.py`
 2. go to http://127.0.0.1:8000/docs
 
 ### Testing
