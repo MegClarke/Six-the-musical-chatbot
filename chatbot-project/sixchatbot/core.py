@@ -31,7 +31,7 @@ def load_config(config_file="config.yaml") -> Config:
         return Config(**yaml.safe_load(file))
 
 
-def initialize_vector_store(files: list[str], config: Config):
+def initialize_vector_store(files: list[str], config: Config) -> None:
     """Initialize the vector store.
 
     Args:
@@ -49,7 +49,7 @@ def initialize_vector_store(files: list[str], config: Config):
     print(f"Successfully initialized ChromaDB in {persist_directory!r}.")
 
 
-def update_vector_store(files: list[str], config: Config):
+def update_vector_store(files: list[str], config: Config) -> None:
     """Update the vector store with new documents.
 
     Args:

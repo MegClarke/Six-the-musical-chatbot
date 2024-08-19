@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 import sixchatbot
 
 
-def main():
+def main() -> None:
     """Main function for the chatbot."""
     load_dotenv()
 
