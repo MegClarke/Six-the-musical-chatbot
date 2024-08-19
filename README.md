@@ -5,6 +5,7 @@ Welcome to the GDPLabs AI/Machine Learning Projects repository! This repository 
 ## Table of Contents
 
 - Overview
+- Installation
 - Kaggle Titanic Competition
    - Environment Set-up
    - Running
@@ -15,6 +16,16 @@ Welcome to the GDPLabs AI/Machine Learning Projects repository! This repository 
 ## Overview
 
 This repository is a collection of my AI and machine learning projects developed during my internship at GDPLabs. The projects are intended to showcase various skills and techniques in the field of AI/ML, including data exploration, model training, and deployment of models for practical applications.
+
+
+## Installation
+
+To set up the repository and install the necessary dependencies, follow these steps:
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/GDP-ADMIN/ai-internship-meagan.git
+
 
 ## Kaggle Titanic Competition
 
@@ -39,5 +50,7 @@ This project involves exploring and attempting to solve the Kaggle Titanic compe
    pytest test_suite.py
 ```
 
-   
 
+### Six the Musical Chatbot
+
+A RAG-based chatbot project focused on "Six the Musical". The chatbot is designed to answer questions and provide information about the musical. This project involves large language models (LLMs), vector stores, text embedding, and other RAG techniques. See chatbot-project/README.md for more detailed set-up and build intructions.

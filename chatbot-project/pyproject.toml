@@ -1,0 +1,37 @@
+[tool.black]
+line-length = 120
+include = '\.pyi?$'
+target-version = ['py36', 'py37', 'py38']
+
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+
+  # The following are specific to Black, you probably don't want those.
+  | blib2to3
+  | tests/data
+)/
+'''
+
+[tool.isort]
+atomic = true
+profile = "black"
+line_length = 120
+skip_gitignore = true
+known_first_party = ["black", "_black_version"]
+skip = ["__init__.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pydocstyle]
+convention = "google"
+add_ignore = ["D107"]
