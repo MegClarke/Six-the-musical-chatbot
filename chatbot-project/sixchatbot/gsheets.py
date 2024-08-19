@@ -94,3 +94,4 @@ class QADatabase:
         """
         column_range_write = "E2:E"
         return self.write_google_sheet_data(column_range_write, data)
+
