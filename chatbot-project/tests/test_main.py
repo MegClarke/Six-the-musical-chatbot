@@ -1,6 +1,8 @@
 """Test module for main.py which handles the main functionality of prompting the chatbot."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 import main
 
@@ -84,14 +86,23 @@ def test_main(
     mock_qadb_instance.post_answers.assert_called_once_with(["Response 1", "Response 2"])
 
 
+@patch("main.sixchatbot.process_question_async")
 @patch("main.sixchatbot.get_retriever")
 @patch("main.load_dotenv")
 @patch("main.PromptTemplate")
 @patch("main.ChatOpenAI")
 @patch("main.sixchatbot.load_config")
-def test_query_chatbot(mock_load_config, mock_chat_openai, mock_prompt_template, mock_load_dotenv, mock_get_retriever):
+@pytest.mark.asyncio
+async def test_query_chatbot(
+    mock_load_config,
+    mock_chat_openai,
+    mock_prompt_template,
+    mock_load_dotenv,
+    mock_get_retriever,
+    mock_process_question_async,
+):
     """
-    Test the query_chatbot function to ensure it initializes components and processes a single question correctly.
+    Test the query_chatbot function to ensure it initializes components and processes a question correctly.
 
     Args:
         mock_load_config (MagicMock): Mock for sixchatbot.load_config function.
@@ -99,6 +110,7 @@ def test_query_chatbot(mock_load_config, mock_chat_openai, mock_prompt_template,
         mock_prompt_template (MagicMock): Mock for PromptTemplate class.
         mock_load_dotenv (MagicMock): Mock for load_dotenv function.
         mock_get_retriever (MagicMock): Mock for sixchatbot.get_retriever function.
+        mock_process_question_async (AsyncMock): Mock for sixchatbot.process_question_async function.
     """
     # Mock instances
     mock_config = MagicMock()
@@ -113,22 +125,30 @@ def test_query_chatbot(mock_load_config, mock_chat_openai, mock_prompt_template,
     mock_prompt_template_instance = MagicMock()
     mock_prompt_template.from_file.return_value = mock_prompt_template_instance
 
-    # Mock the response from process_question
-    mock_response = "Test response"
-    with patch(
-        "main.sixchatbot.process_question", return_value=("Mock context", mock_response)
-    ) as mock_process_question:
-        # Run the query_chatbot function
-        response = main.query_chatbot("Test question")
+    # Mock the response from process_question_async
+    mock_chunk = "Test response chunk"
+    mock_process_question_async.return_value = AsyncMock()
+    mock_process_question_async.return_value.__aiter__.return_value = iter([mock_chunk])
 
-        # Assertions to verify correct calls
-        mock_load_dotenv.assert_called_once()
-        mock_load_config.assert_called_once()
-        mock_get_retriever.assert_called_once_with(config=mock_config)
-        mock_chat_openai.assert_called_once_with(model_name=mock_config.llm.model, temperature=mock_config.llm.temp)
-        mock_prompt_template.from_file.assert_called_once_with(mock_config.llm.prompt)
-        mock_process_question.assert_called_once_with(
-            "Test question", mock_retriever_instance, mock_prompt_template_instance, mock_llm_instance
-        )
+    # Run the query_chatbot function
+    response_generator = main.query_chatbot("Test question")
 
-        assert response == mock_response
+    # Collect the streamed response
+    response_chunks = []
+    async for chunk in response_generator:
+        response_chunks.append(chunk)
+
+    # Assertions to verify correct calls
+    mock_load_dotenv.assert_called_once()
+    mock_load_config.assert_called_once()
+    mock_get_retriever.assert_called_once_with(config=mock_config)
+    mock_chat_openai.assert_called_once_with(
+        model_name=mock_config.llm.model, temperature=mock_config.llm.temp, streaming=True
+    )
+    mock_prompt_template.from_file.assert_called_once_with(mock_config.llm.prompt)
+    mock_process_question_async.assert_called_once_with(
+        "Test question", mock_retriever_instance, mock_prompt_template_instance, mock_llm_instance
+    )
+
+    # Check the streamed response chunks
+    assert response_chunks == [mock_chunk]
