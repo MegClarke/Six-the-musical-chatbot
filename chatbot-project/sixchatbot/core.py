@@ -81,8 +81,6 @@ def get_retriever(config: Config) -> Chroma:
     """Get the retriever of the vector store in persist_directory.
 
     Args:
-        persist_directory (str): The directory where the vector store is located.
-        search_kwargs (dict): Search keyword arguments configured in config.yaml.
         config (Config): The configuration settings for the chatbot.
 
     Returns:

@@ -28,5 +28,6 @@ from .core import (
     process_question,
     process_question_async,
 )
+from .helper import get_files, get_documents, persist_directory_exists
 from .gsheets import QADatabase
 from .schema import Config
