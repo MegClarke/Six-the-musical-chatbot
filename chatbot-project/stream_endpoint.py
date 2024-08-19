@@ -6,7 +6,7 @@ url = "http://127.0.0.1:8000/query"
 
 data = {
     "question": (
-        "What are some common misconceptions about Henry VIII's wives, " "and what is the truth behind those myths?"
+        "What are some common misconceptions about Henry VIII's wives, and what is the truth behind those myths?"
     )
 }
 
