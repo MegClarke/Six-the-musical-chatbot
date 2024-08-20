@@ -33,7 +33,7 @@ def test_query_chatbot_endpoint(mock_query_chatbot):
     question_input = {"question": "What is the meaning of life?"}
 
     # Act
-    response = client.put("/query", json=question_input)
+    response = client.post("/query", json=question_input)
 
     # Assert
     assert response.status_code == 200

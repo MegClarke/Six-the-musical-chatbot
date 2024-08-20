@@ -1,11 +1,18 @@
 """Test module for sixchatbot/core.py functions."""
 
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import pytest
 from langchain.docstore.document import Document
 
-from sixchatbot.core import get_retriever, initialize_vector_store, load_config, process_question, update_vector_store
+from sixchatbot.core import (
+    get_retriever,
+    initialize_vector_store,
+    load_config,
+    process_question,
+    process_question_async,
+    update_vector_store,
+)
 from sixchatbot.schema import Config
 
 
@@ -349,3 +356,108 @@ def test_process_question_reranker_sorting(
     )
     assert context_string == expected_context_string
     assert response == "Paris is the capital of France."
+
+
+@pytest.mark.asyncio
+@patch("sixchatbot.core.FlagReranker")
+@patch("sixchatbot.core.format_docs")
+@patch("main.ChatOpenAI")
+async def test_process_question_async(mock_llm, mock_format_docs, mock_flag_reranker):
+    """
+    Test the process_question_async function to ensure it processes a question correctly and streams the response.
+
+    Args:
+        mock_llm (AsyncMock): Mock for ChatOpenAI class.
+        mock_format_docs (MagicMock): Mock for format_docs function.
+        mock_flag_reranker (MagicMock): Mock for FlagReranker class.
+    """
+    # Mock inputs
+    mock_question = "What is the capital of France?"
+    mock_retriever = MagicMock()
+    mock_prompt = MagicMock()
+    mock_documents = [
+        MagicMock(page_content="Paris is the capital of France.", metadata={"source": "doc1"}),
+        MagicMock(page_content="Paris is the largest city in France.", metadata={"source": "doc2"}),
+    ]
+    mock_retriever.invoke.return_value = mock_documents
+
+    # Mock the reranker behavior
+    mock_reranker_instance = mock_flag_reranker.return_value
+    mock_reranker_instance.compute_score.return_value = [0.9, 0.8]
+
+    mock_format_docs.return_value = "Formatted documents."
+
+    # Mock the RAG chain behavior
+    mock_llm_instance = mock_llm.return_value
+    mock_llm_instance.astream.return_value = AsyncMock()
+    mock_llm_instance.astream.return_value.__aiter__.return_value = iter(
+        [MagicMock(content="Paris is the capital of France.")]
+    )
+
+    # Act
+    response_generator = process_question_async(mock_question, mock_retriever, mock_prompt, mock_llm_instance)
+
+    # Collect the streamed response
+    response_chunks = []
+    async for chunk in response_generator:
+        response_chunks.append(chunk)
+
+    # Assertions to verify correct calls
+    mock_retriever.invoke.assert_called_once_with(mock_question)
+    mock_reranker_instance.compute_score.assert_called_once()
+    mock_format_docs.assert_called_once_with(mock_documents)
+    mock_llm_instance.astream.assert_called_once()
+
+    assert response_chunks == ["Paris is the capital of France."]
+
+
+@pytest.mark.asyncio
+@patch("sixchatbot.core.FlagReranker")
+@patch("sixchatbot.core.format_docs")
+@patch("main.ChatOpenAI")
+async def test_process_question_async_reranker_sorting(mock_llm, mock_format_docs, mock_flag_reranker):
+    """
+    Test the process_question_async function to ensure it correctly sorts the documents based on reranker scores.
+
+    Args:
+        mock_llm (AsyncMock): Mock for ChatOpenAI class.
+        mock_format_docs (MagicMock): Mock for format_docs function.
+        mock_flag_reranker (MagicMock): Mock for FlagReranker class.
+    """
+    # Mock inputs
+    mock_question = "What is the capital of France?"
+    mock_retriever = MagicMock()
+    mock_prompt = MagicMock()
+    mock_documents = [
+        MagicMock(page_content="Paris is the capital of France.", metadata={"source": "doc1"}),
+        MagicMock(page_content="Lyon is a city in France.", metadata={"source": "doc2"}),
+        MagicMock(page_content="Marseille is a port city in France.", metadata={"source": "doc3"}),
+    ]
+    mock_retriever.invoke.return_value = mock_documents
+
+    # Mock the reranker behavior
+    mock_reranker_instance = mock_flag_reranker.return_value
+    mock_reranker_instance.compute_score.return_value = [0.5, 0.9, 0.7]
+
+    mock_format_docs.return_value = "Formatted documents."
+
+    # Mock the RAG chain behavior
+    mock_llm_instance = mock_llm.return_value
+    mock_llm_instance.astream.return_value = AsyncMock()
+    mock_llm_instance.astream.return_value.__aiter__.return_value = iter(
+        [MagicMock(content="Lyon is a city in France.")]
+    )
+
+    # Act
+    response_generator = process_question_async(mock_question, mock_retriever, mock_prompt, mock_llm_instance)
+
+    # Collect the streamed response
+    response_chunks = []
+    async for chunk in response_generator:
+        response_chunks.append(chunk)
+
+    # Assertions to verify correct calls
+    mock_retriever.invoke.assert_called_once_with(mock_question)
+    mock_reranker_instance.compute_score.assert_called_once()
+
+    assert response_chunks == ["Lyon is a city in France."]
