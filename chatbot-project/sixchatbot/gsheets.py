@@ -1,6 +1,5 @@
 """Contains QADatabase a class for interacting with the Q&A Google Sheets database."""
 
-
 import gspread
 
 
