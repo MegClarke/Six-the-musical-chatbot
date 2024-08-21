@@ -4,6 +4,7 @@ import json
 import os
 
 from dotenv import load_dotenv
+from FlagEmbedding import FlagReranker
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
@@ -19,6 +20,7 @@ def main() -> None:
     retriever = sixchatbot.get_retriever(config=config)
 
     llm = ChatOpenAI(model_name=config.llm.model, temperature=config.llm.temp)
+    reranker = FlagReranker(model_name_or_path=config.reranker.model, use_fp16=True)
     prompt = PromptTemplate.from_file(config.llm.prompt)
 
     spreadsheet_id = os.getenv("SHEET_ID")
@@ -31,7 +33,7 @@ def main() -> None:
     outputs = []
 
     for question in questions:
-        context_string, response = sixchatbot.process_question(question, retriever, prompt, llm)
+        context_string, response = sixchatbot.process_question(question, retriever, prompt, llm, reranker)
         retrieved_chunks.append(context_string)
         outputs.append(response)
 

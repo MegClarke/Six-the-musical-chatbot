@@ -18,6 +18,16 @@ class LlmSchema(BaseModel):
     temp: float
 
 
+class RerankerSchema(BaseModel):
+    """Schema for defining the configuration of the reranker model.
+
+    Attributes:
+        model (str): The name or identifier of the reranker model to be used.
+    """
+
+    model: str
+
+
 class ChromaSchema(BaseModel):
     """Schema for defining the configuration of Chroma, typically used for vector storage.
 
@@ -26,6 +36,7 @@ class ChromaSchema(BaseModel):
     """
 
     persist_directory: str
+    embedding_model: str
 
 
 class TextSplitterSchema(BaseModel):
@@ -53,6 +64,7 @@ class Config(BaseModel):
 
     context_directory: str
     llm: LlmSchema
+    reranker: RerankerSchema
     search_kwargs: dict[str, int]
     chroma: ChromaSchema
     text_splitter: TextSplitterSchema

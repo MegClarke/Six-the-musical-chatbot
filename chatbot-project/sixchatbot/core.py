@@ -14,7 +14,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from .helper import format_docs, get_documents, get_files, persist_directory_exists
+from .helper import format_docs, get_documents, get_json_files, persist_directory_exists, rerank_context
 from .schema import Config
 
 
@@ -40,10 +40,11 @@ def initialize_vector_store(files: list[str], config: Config) -> None:
     """
     documents = get_documents(files, config.text_splitter.chunk_size, config.text_splitter.chunk_overlap)
     persist_directory = config.chroma.persist_directory
+    embedding_function = OpenAIEmbeddings(model=config.chroma.embedding_model)
 
     Chroma.from_documents(
         documents=documents,
-        embedding=OpenAIEmbeddings(model="text-embedding-ada-002"),
+        embedding=embedding_function,
         persist_directory=persist_directory,
     )
     print(f"Successfully initialized ChromaDB in {persist_directory!r}.")
@@ -85,22 +86,25 @@ def get_retriever(config: Config) -> Chroma:
         Chroma: The ChromaDB retriever instance.
     """
     persist_directory = config.chroma.persist_directory
+    embedding_function = OpenAIEmbeddings(model=config.chroma.embedding_model)
     search_kwargs = config.search_kwargs
     directory_path = config.context_directory
 
-    file_paths = get_files(directory_path)
+    file_paths = get_json_files(directory_path)
 
     if persist_directory_exists(persist_directory) is False:
         initialize_vector_store(files=file_paths, config=config)
     vector_store = Chroma(
-        embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002"),
+        embedding_function=embedding_function,
         persist_directory=persist_directory,
         create_collection_if_not_exists=False,
     )
     return vector_store.as_retriever(search_type="similarity", search_kwargs=search_kwargs)
 
 
-def process_question(question: str, retriever: Chroma, prompt: PromptTemplate, llm: ChatOpenAI) -> tuple[str, str]:
+def process_question(
+    question: str, retriever: Chroma, prompt: PromptTemplate, llm: ChatOpenAI, reranker: FlagReranker
+) -> tuple[str, str]:
     """Process a question by invoking the retriever and the RAG chain.
 
     Args:
@@ -113,15 +117,7 @@ def process_question(question: str, retriever: Chroma, prompt: PromptTemplate, l
         tuple[str, str]: A tuple containing the retrieved context (chunks) and the generated response of the query.
     """
     context = retriever.invoke(question)
-    paired_contexts = [[question, str(chunk)] for chunk in context]
-
-    reranker = FlagReranker("BAAI/bge-reranker-large", use_fp16=True)
-
-    scores = reranker.compute_score(paired_contexts)
-    scored_contexts = list(zip(scores, context, strict=True))
-    scored_contexts.sort(reverse=True, key=lambda x: x[0])
-    top_scored_contexts = scored_contexts[:10]
-    context = [chunk for _, chunk in top_scored_contexts]
+    context = rerank_context(context, question, reranker, prompt, llm)
 
     context_string = ""
     context_string = "\n\n".join(f"{str(chunk.metadata)}\n{chunk.page_content[:300]}" for chunk in context)

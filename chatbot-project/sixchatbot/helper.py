@@ -3,6 +3,7 @@
 import json
 import os
 
+from FlagEmbedding import FlagReranker
 from langchain.docstore.document import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -19,7 +20,7 @@ def persist_directory_exists(persist_directory: str) -> bool:
     return os.path.exists(persist_directory) and os.listdir(persist_directory)
 
 
-def get_files(directory: str) -> list[str]:
+def get_json_files(directory: str) -> list[str]:
     """Get a list of JSON files from a directory.
 
     Args:
@@ -63,6 +64,27 @@ def get_documents(files: list[str], chunk_size: int, chunk_overlap: int) -> list
     json_documents = text_splitter.split_documents(json_docs)
 
     return json_documents
+
+
+def rerank_context(context: list[Document], question: str, reranker: FlagReranker) -> list[Document]:
+    """Rerank the context documents based on the question.
+
+    Args:
+        context (List[Document]): A list of Document objects.
+        question (str): The question to rerank the context against.
+        reranker (FlagReranker): The FlagReranker object to compute the scores.
+
+    Returns:
+        List[Document]: A list of Document objects sorted by the reranker scores.
+    """
+    paired_contexts = [[question, str(chunk)] for chunk in context]
+
+    scores = reranker.compute_score(paired_contexts)
+    scored_contexts = list(zip(scores, context, strict=True))
+    scored_contexts.sort(reverse=True, key=lambda x: x[0])
+    top_scored_contexts = scored_contexts[:10]
+
+    return [chunk for _, chunk in top_scored_contexts]
 
 
 def format_docs(docs: list[Document]) -> str:
