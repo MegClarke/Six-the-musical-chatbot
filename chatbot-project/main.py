@@ -24,7 +24,7 @@ def main() -> None:
     prompt = PromptTemplate.from_file(config.llm.prompt)
 
     spreadsheet_id = os.getenv("SHEET_ID")
-    sheet_name = "Trial 6"
+    sheet_name = os.getenv("SHEET_NAME")
 
     qa_db = sixchatbot.QADatabase(spreadsheet_id=spreadsheet_id, sheet_name=sheet_name)
 
