@@ -10,7 +10,7 @@ COLUMN_RANGE_ANSWERS = "E2:E"
 class QADatabase:
     """Class for interacting with the Q&A Google Sheets database."""
 
-    def __init__(self, spreadsheet_id: str, sheet_name: str):
+    def __init__(self, spreadsheet_id: str, sheet_name: str) -> None:
         """Initialize the QADatabase with a Google Sheets client and a spreadsheet ID.
 
         Args:
