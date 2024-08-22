@@ -14,7 +14,7 @@ import main
 @patch("main.PromptTemplate")
 @patch("main.ChatOpenAI")
 @patch("main.sixchatbot.load_config")
-@patch("os.getenv", return_value="test_spreadsheet_id")
+@patch("os.getenv")
 def test_main(
     mock_getenv,
     mock_load_config,
@@ -40,6 +40,7 @@ def test_main(
         mock_qadb (MagicMock): Mock for sixchatbot.QADatabase class.
     """
     # Mock instances
+    mock_getenv.side_effect = ["test_spreadsheet_id", "test_trial"]
     mock_config = MagicMock()
     mock_load_config.return_value = mock_config
 
@@ -69,7 +70,7 @@ def test_main(
     mock_chat_openai.assert_called_once_with(model_name=mock_config.llm.model, temperature=mock_config.llm.temp)
     mock_prompt_template.from_file.assert_called_once_with(mock_config.llm.prompt)
 
-    mock_qadb.assert_called_once_with(spreadsheet_id="test_spreadsheet_id", sheet_name="Trial 11")
+    mock_qadb.assert_called_once_with(spreadsheet_id="test_spreadsheet_id", sheet_name="test_trial")
     mock_qadb_instance.get_questions.assert_called_once()
 
     # Ensure process_question was called for each question

@@ -56,7 +56,7 @@ class TestQADatabase(unittest.TestCase):
         self.mock_gc.open_by_key.side_effect = Exception("Some error")
 
         result = self.qadb.write_google_sheet_data("D2:D", ["Chunk 1", "Chunk 2"])
-        self.assertIsNone(result)
+        self.assertEqual(result, {"status": "failed"})
 
     @patch("sixchatbot.gsheets.gspread.service_account")
     def test_get_questions(self, mock_service_account):
