@@ -18,7 +18,7 @@ from .helper import format_docs, get_documents, get_json_files, persist_director
 from .schema import Config
 
 
-def load_config(config_file="config.yaml") -> Config:
+def load_config(config_file: str = "config.yaml") -> Config:
     """Load configuration from a YAML file.
 
     Args:

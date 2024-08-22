@@ -45,7 +45,7 @@ def get_documents(files: list[str], chunk_size: int, chunk_overlap: int) -> list
         chunk_overlap (int): The overlap between chunks.
 
     Returns:
-        List[Document]: A list of Document objects split into smaller chunks.
+        list[Document]: A list of Document objects split into smaller chunks.
     """
     json_docs = []
 
@@ -70,12 +70,12 @@ def rerank_context(context: list[Document], question: str, reranker: FlagReranke
     """Rerank the context documents based on the question.
 
     Args:
-        context (List[Document]): A list of Document objects.
+        context (list[Document]): A list of Document objects.
         question (str): The question to rerank the context against.
         reranker (FlagReranker): The FlagReranker object to compute the scores.
 
     Returns:
-        List[Document]: A list of Document objects sorted by the reranker scores.
+        list[Document]: A list of Document objects sorted by the reranker scores.
     """
     paired_contexts = [[question, str(chunk)] for chunk in context]
 
@@ -91,7 +91,7 @@ def format_docs(docs: list[Document]) -> str:
     """Format a list of Document objects into a single string.
 
     Args:
-        docs (List[Document]): A list of Document objects.
+        docs (list[Document]): A list of Document objects.
 
     Returns:
         str: A string containing the contents of all the documents seperated by a blank line.
