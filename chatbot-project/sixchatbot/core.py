@@ -66,7 +66,7 @@ def update_vector_store(files: list[str], config: Config) -> None:
     new_documents = get_documents(files, config.text_splitter.chunk_size, config.text_splitter.chunk_overlap)
 
     vector_store = Chroma(
-        embedding_function=OpenAIEmbeddings(model="text-embedding-ada-002"),
+        embedding_function=OpenAIEmbeddings(model=config.chroma.embedding_model),
         persist_directory=persist_directory,
         create_collection_if_not_exists=False,
     )
@@ -133,7 +133,7 @@ def process_question(
 
 
 async def process_question_async(
-    question: str, retriever: Chroma, prompt: PromptTemplate, llm: ChatOpenAI
+    question: str, retriever: Chroma, prompt: PromptTemplate, llm: ChatOpenAI, reranker: FlagReranker
 ) -> AsyncGenerator[str, None]:
     """Process a question by invoking the retriever and the RAG chain with streaming.
 
@@ -147,15 +147,7 @@ async def process_question_async(
         str: Chunks of the generated response.
     """
     context = retriever.invoke(question)
-    paired_contexts = [[question, str(chunk)] for chunk in context]
-
-    reranker = FlagReranker("BAAI/bge-reranker-large", use_fp16=True)
-
-    scores = reranker.compute_score(paired_contexts)
-    scored_contexts = list(zip(scores, context, strict=True))
-    scored_contexts.sort(reverse=True, key=lambda x: x[0])
-    top_scored_contexts = scored_contexts[:10]
-    context = [chunk for _, chunk in top_scored_contexts]
+    context = rerank_context(context, question, reranker)
 
     context = format_docs(context)
     input_data = {"context": context, "question": question}

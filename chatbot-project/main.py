@@ -10,6 +10,13 @@ from langchain_openai import ChatOpenAI
 
 import sixchatbot
 
+load_dotenv()
+config = sixchatbot.load_config()
+retriever = sixchatbot.get_retriever(config=config)
+llm = ChatOpenAI(model_name=config.llm.model, temperature=config.llm.temp, streaming=True)
+reranker = FlagReranker(model_name_or_path=config.reranker.model, use_fp16=True)
+prompt = PromptTemplate.from_file(config.llm.prompt)
+
 
 async def query_chatbot(question: str) -> AsyncGenerator[str, None]:
     """Query the chatbot with a question.
@@ -20,32 +27,12 @@ async def query_chatbot(question: str) -> AsyncGenerator[str, None]:
     Yields:
         str: Chunks of the response from the chatbot.
     """
-    load_dotenv()
-
-    config = sixchatbot.load_config()
-
-    retriever = sixchatbot.get_retriever(config=config)
-
-    llm = ChatOpenAI(model_name=config.llm.model, temperature=config.llm.temp, streaming=True)
-    prompt = PromptTemplate.from_file(config.llm.prompt)
-
-    # Stream the response using the async generator
-    async for chunk in sixchatbot.process_question_async(question, retriever, prompt, llm):
+    async for chunk in sixchatbot.process_question_async(question, retriever, prompt, llm, reranker):
         yield chunk
 
 
 def main() -> None:
     """Main function for the chatbot."""
-    load_dotenv()
-
-    config = sixchatbot.load_config()
-
-    retriever = sixchatbot.get_retriever(config=config)
-
-    llm = ChatOpenAI(model_name=config.llm.model, temperature=config.llm.temp)
-    reranker = FlagReranker(model_name_or_path=config.reranker.model, use_fp16=True)
-    prompt = PromptTemplate.from_file(config.llm.prompt)
-
     spreadsheet_id = os.getenv("SHEET_ID")
     sheet_name = os.getenv("SHEET_NAME")
 
