@@ -2,6 +2,10 @@
 
 import gspread
 
+COLUMN_RANGE_QUESTIONS = "B2:B21"
+COLUMN_RANGE_CHUNKS = "D2:D"
+COLUMN_RANGE_ANSWERS = "E2:E"
+
 
 class QADatabase:
     """Class for interacting with the Q&A Google Sheets database."""
@@ -59,7 +63,7 @@ class QADatabase:
 
         except Exception as e:
             print(f"An error occurred: {e}")
-            return None
+            return {"status": "failed"}
 
     def get_questions(self) -> list[str]:
         """Retrieve questions from the Google Sheet.
@@ -67,8 +71,7 @@ class QADatabase:
         Returns:
             list[str]: A list of questions from the Google Sheet.
         """
-        column_range_read = "B2:B21"
-        data = self.get_google_sheet_data(column_range_read)
+        data = self.get_google_sheet_data(COLUMN_RANGE_QUESTIONS)
         return [item[0] for item in data] if data else []
 
     def post_chunks(self, data: list[str]) -> dict[str] | None:
@@ -80,8 +83,7 @@ class QADatabase:
         Returns:
             dict[str]: A dictionary with the status and updated range, or None if an error occurs.
         """
-        column_range_write = "D2:D"
-        return self.write_google_sheet_data(column_range_write, data)
+        return self.write_google_sheet_data(COLUMN_RANGE_CHUNKS, data)
 
     def post_answers(self, data: list[str]) -> dict[str] | None:
         """Post answers to the Google Sheet.
@@ -92,5 +94,4 @@ class QADatabase:
         Returns:
             dict[str]: A dictionary with the status and updated range, or None if an error occurs.
         """
-        column_range_write = "E2:E"
-        return self.write_google_sheet_data(column_range_write, data)
+        return self.write_google_sheet_data(COLUMN_RANGE_ANSWERS, data)
