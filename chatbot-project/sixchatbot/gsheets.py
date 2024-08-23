@@ -1,109 +1,98 @@
-"""This module contains functions for interacting with the Q&A database."""
+"""Contains QADatabase a class for interacting with the Q&A Google Sheets database."""
+
 
 import gspread
 
-
-def get_google_sheet_data(
-    gc: gspread.client.Client, spreadsheet_id: str, sheet_name: str, cell_range: str
-) -> list[str] | None:
-    """Fetch data from a specified range in a Google Sheet.
-
-    Args:
-        gc (gspread.client.Client): The gspread client.
-        spreadsheet_id (str): The ID of the spreadsheet.
-        sheet_name (str): The name of the sheet.
-        cell_range (str): The range of cells to fetch.
-
-    Returns:
-        list[str] | None: The values from the specified range or None if an error occurs.
-    """
-    try:
-        sh = gc.open_by_key(spreadsheet_id)
-        worksheet = sh.worksheet(sheet_name)
-
-        values = worksheet.get(cell_range)
-        return values
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+COLUMN_RANGE_QUESTIONS = "B2:B21"
+COLUMN_RANGE_CHUNKS = "D2:D"
+COLUMN_RANGE_ANSWERS = "E2:E"
 
 
-def write_google_sheet_data(
-    gc: gspread.client.Client, spreadsheet_id: str, sheet_name: str, cell_range: str, data: list[str]
-) -> dict[str] | None:
-    """Write data to a specified range in a Google Sheet.
+class QADatabase:
+    """Class for interacting with the Q&A Google Sheets database."""
 
-    Args:
-        gc (gspread.client.Client): The gspread client.
-        spreadsheet_id (str): The ID of the spreadsheet.
-        sheet_name (str): The name of the sheet.
-        cell_range (str): The range of cells to update.
-        data (list[str]): The data to write.
+    def __init__(self, spreadsheet_id: str, sheet_name: str):
+        """Initialize the QADatabase with a Google Sheets client and a spreadsheet ID.
 
-    Returns:
-        dict[str]: A dictionary with the status and updated range, or None if an error occurs.
-    """
-    try:
-        sh = gc.open_by_key(spreadsheet_id)
-        worksheet = sh.worksheet(sheet_name)
+        Args:
+            spreadsheet_id (str): The ID of the spreadsheet.
+            sheet_name (str): The name of the sheet.
+        """
+        self.gc = gspread.service_account()
+        self.spreadsheet_id = spreadsheet_id
+        self.sheet_name = sheet_name
 
-        values = [[item] for item in data]
-        worksheet.update(values, cell_range)
+    def get_google_sheet_data(self, cell_range: str) -> list[str] | None:
+        """Fetch data from a specified range in a Google Sheet.
 
-        return {"status": "success"}
+        Args:
+            cell_range (str): The range of cells to fetch.
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+        Returns:
+            list[str] | None: The values from the specified range or None if an error occurs.
+        """
+        try:
+            sh = self.gc.open_by_key(self.spreadsheet_id)
+            worksheet = sh.worksheet(self.sheet_name)
 
+            values = worksheet.get(cell_range)
+            return values
 
-def get_questions(sheetname: str) -> list[str]:
-    """Retrieve questions from the Google Sheet.
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
 
-    Args:
-        sheetname (str): The name of the sheet to read from
+    def write_google_sheet_data(self, cell_range: str, data: list[str]) -> dict[str] | None:
+        """Write data to a specified range in a Google Sheet.
 
-    Returns:
-        list[str]: A list of questions from the Google Sheet.
-    """
-    gc = gspread.service_account()
-    spreadsheet_id = "1e_1WA8eUGZddp9NK8ngz_IzZkNby5UcC9JhjMivEvnk"
-    sheet_name = sheetname
-    column_range_read = "B2:B21"
-    data = get_google_sheet_data(gc, spreadsheet_id, sheet_name, column_range_read)
-    return [item[0] for item in data] if data else []
+        Args:
+            sheet_name (str): The name of the sheet.
+            cell_range (str): The range of cells to update.
+            data (list[str]): The data to write.
 
+        Returns:
+            dict[str]: A dictionary with the status and updated range, or None if an error occurs.
+        """
+        try:
+            sh = self.gc.open_by_key(self.spreadsheet_id)
+            worksheet = sh.worksheet(self.sheet_name)
 
-def post_chunks(sheetname: str, data: list[str]) -> dict[str] | None:
-    """Post chunk data to the Google Sheet.
+            values = [[item] for item in data]
+            worksheet.update(cell_range, values)
 
-    Args:
-        sheetname (str): The name of the sheet to write to.
-        data (list[str]): The chunk data to write.
+            return {"status": "success"}
 
-    Returns:
-        dict[str]: A dictionary with the status and updated range, or None if an error occurs.
-    """
-    gc = gspread.service_account()
-    spreadsheet_id = "1e_1WA8eUGZddp9NK8ngz_IzZkNby5UcC9JhjMivEvnk"
-    sheet_name = sheetname
-    column_range_write = "D2:D"
-    return write_google_sheet_data(gc, spreadsheet_id, sheet_name, column_range_write, data)
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return {"status": "failed"}
 
+    def get_questions(self) -> list[str]:
+        """Retrieve questions from the Google Sheet.
 
-def post_answers(sheetname: str, data: list[str]) -> dict[str] | None:
-    """Post answers to the Google Sheet.
+        Returns:
+            list[str]: A list of questions from the Google Sheet.
+        """
+        data = self.get_google_sheet_data(COLUMN_RANGE_QUESTIONS)
+        return [item[0] for item in data] if data else []
 
-    Args:
-        sheetname (str): The name of the sheet to write to.
-        data (list[str]): The answers to write.
+    def post_chunks(self, data: list[str]) -> dict[str] | None:
+        """Post chunk data to the Google Sheet.
 
-    Returns:
-        dict[str]: A dictionary with the status and updated range, or None if an error occurs.
-    """
-    gc = gspread.service_account()
-    spreadsheet_id = "1e_1WA8eUGZddp9NK8ngz_IzZkNby5UcC9JhjMivEvnk"
-    sheet_name = sheetname
-    column_range_write = "E2:E"
-    return write_google_sheet_data(gc, spreadsheet_id, sheet_name, column_range_write, data)
+        Args:
+            data (list[str]): The chunk data to write.
+
+        Returns:
+            dict[str]: A dictionary with the status and updated range, or None if an error occurs.
+        """
+        return self.write_google_sheet_data(COLUMN_RANGE_CHUNKS, data)
+
+    def post_answers(self, data: list[str]) -> dict[str] | None:
+        """Post answers to the Google Sheet.
+
+        Args:
+            data (list[str]): The answers to write.
+
+        Returns:
+            dict[str]: A dictionary with the status and updated range, or None if an error occurs.
+        """
+        return self.write_google_sheet_data(COLUMN_RANGE_ANSWERS, data)
