@@ -1,6 +1,6 @@
 """FastAPI application for the chatbot project."""
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from pydantic import BaseModel
 
 import main
@@ -10,8 +10,8 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    """Hello world endpoint for the FastAPI application."""
-    return {"message": "Hello World"}
+    """Redirects to the Swagger documentation."""
+    return RedirectResponse(url="/docs")
 
 
 @app.get(
