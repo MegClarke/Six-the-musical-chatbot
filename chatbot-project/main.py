@@ -1,6 +1,5 @@
 """This module handles the main functionality of prompting the chatbot."""
 
-import json
 import os
 
 from dotenv import load_dotenv

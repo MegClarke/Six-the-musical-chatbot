@@ -1,12 +1,17 @@
 """Contains QADatabase a class for interacting with the Q&A Google Sheets database."""
 
+
 import gspread
+
+COLUMN_RANGE_QUESTIONS = "B2:B21"
+COLUMN_RANGE_CHUNKS = "D2:D"
+COLUMN_RANGE_ANSWERS = "E2:E"
 
 
 class QADatabase:
     """Class for interacting with the Q&A Google Sheets database."""
 
-    def __init__(self, spreadsheet_id: str, sheet_name: str) -> None:
+    def __init__(self, spreadsheet_id: str, sheet_name: str):
         """Initialize the QADatabase with a Google Sheets client and a spreadsheet ID.
 
         Args:
@@ -67,7 +72,6 @@ class QADatabase:
         Returns:
             list[str]: A list of questions from the Google Sheet.
         """
-        COLUMN_RANGE_QUESTIONS = "B2:B21"
         data = self.get_google_sheet_data(COLUMN_RANGE_QUESTIONS)
         return [item[0] for item in data] if data else []
 
@@ -80,7 +84,6 @@ class QADatabase:
         Returns:
             dict[str]: A dictionary with the status and updated range, or None if an error occurs.
         """
-        COLUMN_RANGE_CHUNKS = "D2:D"
         return self.write_google_sheet_data(COLUMN_RANGE_CHUNKS, data)
 
     def post_answers(self, data: list[str]) -> dict[str] | None:
@@ -92,5 +95,4 @@ class QADatabase:
         Returns:
             dict[str]: A dictionary with the status and updated range, or None if an error occurs.
         """
-        COLUMN_RANGE_ANSWERS = "E2:E"
         return self.write_google_sheet_data(COLUMN_RANGE_ANSWERS, data)

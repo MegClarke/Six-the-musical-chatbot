@@ -112,6 +112,7 @@ def process_question(
         retriever (Retriever): The retriever instance to use.
         prompt (PromptTemplate): The prompt template instance to use.
         llm (ChatOpenAI): The language model instance to use.
+        reranker (FlagReranker): The reranker instance to use.
 
     Returns:
         tuple[str, str]: A tuple containing the retrieved context (chunks) and the generated response of the query.
