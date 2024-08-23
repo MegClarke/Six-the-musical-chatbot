@@ -1,12 +1,18 @@
+context_directory: "contexts"
+
 llm:
   model: "gpt-4o-mini"
   temp: 0.001
-  prompt: prompts/default.txt
+  prompt: prompts/trial4.txt
+
+reranker:
+  model: "BAAI/bge-reranker-large"
 
 search_kwargs:
-  k: 10
+  k: 15
 
 chroma:
+  embedding_model: "text-embedding-ada-002"
   persist_directory: "./chroma_persist"
 
 text_splitter:
