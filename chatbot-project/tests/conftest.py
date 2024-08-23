@@ -20,7 +20,11 @@ def mock_load_config():
                 "chunk_size": 100,
                 "chunk_overlap": 10,
             },
-            chroma={"persist_directory": "test_directory"},
+            reranker={"model": "test_reranker_model"},
+            chroma={
+                "persist_directory": "test_directory",
+                "embedding_model": "test-embedding-model",
+            },
             search_kwargs={"k": 10},
             llm={
                 "model": "test_model",

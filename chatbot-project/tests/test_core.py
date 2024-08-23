@@ -46,9 +46,10 @@ def mock_documents():
     "yaml.safe_load",
     return_value={
         "context_directory": "contexts",
+        "reranker": {"model": "test-reranking-model"},
         "llm": {"model": "gpt-4o-mini", "temp": 0.001, "prompt": "prompts/default.txt"},
         "search_kwargs": {"k": 6},
-        "chroma": {"persist_directory": "./chroma_persist"},
+        "chroma": {"persist_directory": "./chroma_persist", "embedding_model": "test-embedding-model"},
         "text_splitter": {"chunk_size": 1300, "chunk_overlap": 200},
     },
 )
@@ -95,7 +96,7 @@ def test_initialize_vector_store(mock_chroma, mock_embeddings, mock_get_document
     mock_get_documents.assert_called_once_with(
         mock_files, mock_config.text_splitter.chunk_size, mock_config.text_splitter.chunk_overlap
     )
-    mock_embeddings.assert_called_once_with(model="text-embedding-ada-002")
+    mock_embeddings.assert_called_once_with(model=mock_config.chroma.embedding_model)
     mock_chroma.from_documents.assert_called_once_with(
         documents=mock_documents,
         embedding=mock_embeddings.return_value,
@@ -169,12 +170,12 @@ def test_update_vector_store_adds_documents(
     mock_embeddings.assert_called_once_with(model="text-embedding-ada-002")
 
 
-@patch("sixchatbot.core.get_files", return_value=["file1.txt", "file2.txt"])
+@patch("sixchatbot.core.get_json_files", return_value=["file1.txt", "file2.txt"])
 @patch("sixchatbot.core.persist_directory_exists", return_value=True)
 @patch("sixchatbot.core.Chroma")
 @patch("sixchatbot.core.OpenAIEmbeddings")
 def test_get_retriever_existing_directory(
-    mock_openai_embeddings, mock_chroma, mock_persist_directory_exists, mock_get_files, mock_config
+    mock_openai_embeddings, mock_chroma, mock_persist_directory_exists, mock_get_json_files, mock_config
 ):
     """
     Test the get_retriever function when the persist directory exists to ensure it correctly initializes the retriever.
@@ -183,7 +184,7 @@ def test_get_retriever_existing_directory(
         mock_openai_embeddings (MagicMock): Mock for OpenAIEmbeddings class.
         mock_chroma (MagicMock): Mock for Chroma class.
         mock_persist_directory_exists (MagicMock): Mock for persist_directory_exists function.
-        mock_get_files (MagicMock): Mock for get_files function.
+        mock_get_json_files (MagicMock): Mock for get_json_files function.
         mock_config (Config): Mock configuration object.
 
     Asserts:
@@ -197,7 +198,7 @@ def test_get_retriever_existing_directory(
 
     mock_persist_directory_exists.assert_called_once_with(mock_config.chroma.persist_directory)
     mock_chroma.assert_called_once_with(
-        embedding_function=mock_openai_embeddings(model="text-embedding-ada-002"),
+        embedding_function=mock_openai_embeddings(model=mock_config.chroma.embedding_model),
         persist_directory=mock_config.chroma.persist_directory,
         create_collection_if_not_exists=False,
     )
@@ -207,7 +208,7 @@ def test_get_retriever_existing_directory(
     assert retriever == retriever_instance
 
 
-@patch("sixchatbot.core.get_files", return_value=["file1.txt", "file2.txt"])
+@patch("sixchatbot.core.get_json_files", return_value=["file1.txt", "file2.txt"])
 @patch("sixchatbot.core.persist_directory_exists", return_value=False)
 @patch("sixchatbot.core.initialize_vector_store")
 @patch("sixchatbot.core.Chroma")
@@ -217,7 +218,7 @@ def test_get_retriever_non_existing_directory(
     mock_chroma,
     mock_initialize_vector_store,
     mock_persist_directory_exists,
-    mock_get_files,
+    mock_get_json_files,
     mock_config,
 ):
     """
@@ -228,18 +229,18 @@ def test_get_retriever_non_existing_directory(
         mock_chroma (MagicMock): Mock for Chroma class.
         mock_initialize_vector_store (MagicMock): Mock for initialize_vector_store function.
         mock_persist_directory_exists (MagicMock): Mock for persist_directory_exists function.
-        mock_get_files (MagicMock): Mock for get_files function.
+        mock_get_json_files (MagicMock): Mock for get_json_files function.
         mock_config (Config): Mock configuration object.
 
     Asserts:
         The get_retriever function initializes the vector store when the persist directory does not exist.
     """
-    mock_files = mock_get_files.return_value
+    mock_files = mock_get_json_files.return_value
     get_retriever(mock_config)
 
     mock_persist_directory_exists.assert_called_once_with(mock_config.chroma.persist_directory)
     mock_chroma.assert_called_once_with(
-        embedding_function=mock_openai_embeddings(model="text-embedding-ada-002"),
+        embedding_function=mock_openai_embeddings(model=mock_config.chroma.embedding_model),
         persist_directory=mock_config.chroma.persist_directory,
         create_collection_if_not_exists=False,
     )
@@ -247,11 +248,14 @@ def test_get_retriever_non_existing_directory(
 
 
 @patch("sixchatbot.core.FlagReranker")
+@patch("sixchatbot.core.rerank_context")
 @patch("sixchatbot.core.format_docs")
 @patch("sixchatbot.core.StrOutputParser")
 @patch("main.PromptTemplate")
 @patch("main.ChatOpenAI")
-def test_process_question(mock_llm, mock_prompt_template, mock_parser, mock_format_docs, mock_flag_reranker):
+def test_process_question(
+    mock_llm, mock_prompt_template, mock_parser, mock_format_docs, mock_rerank_context, mock_flag_reranker
+):
     """
     Test the process_question function to ensure it correctly processes a question using the retriever,
     reranker, and the RAG chain.
@@ -259,6 +263,10 @@ def test_process_question(mock_llm, mock_prompt_template, mock_parser, mock_form
     Args:
         mock_format_docs (MagicMock): Mock for format_docs function.
         mock_flag_reranker (MagicMock): Mock for FlagReranker class.
+        mock_llm (MagicMock): Mock for ChatOpenAI class.
+        mock_prompt_template (MagicMock): Mock for PromptTemplate class.
+        mock_parser (MagicMock): Mock for StrOutputParser class.
+        mock_rerank_context (MagicMock): Mock for rerank_context function.
 
     Asserts:
         The function returns the expected context string and response.
@@ -275,22 +283,31 @@ def test_process_question(mock_llm, mock_prompt_template, mock_parser, mock_form
     mock_retriever.invoke.return_value = mock_documents
 
     # Mock the reranker behavior
-    mock_reranker_instance = mock_flag_reranker.return_value
-    mock_reranker_instance.compute_score.return_value = [0.9, 0.8]
+    # mock_reranker_instance = mock_flag_reranker.return_value
+    # mock_reranker_instance.compute_score.return_value = [0.9, 0.8]
+
+    mock_rerank_context.return_value = mock_documents
 
     mock_format_docs.return_value = "Formatted documents."
+
+    mock_rag_chain = mock_prompt | mock_llm | mock_parser
+    mock_rag_chain_response = "Paris is the capital of France."
+    mock_rag_chain.invoke.return_value = mock_rag_chain_response
+
     expected_input_data = {"context": mock_format_docs.return_value, "question": mock_question}
 
     # Mock the RAG chain behavior
-    mock_rag_chain = mock_prompt | mock_llm | mock_parser
-    mock_rag_chain.invoke.return_value = "Paris is the capital of France."
 
     # Act
-    context_string, response = process_question(mock_question, mock_retriever, mock_prompt, mock_llm)
+    context_string, response = process_question(
+        mock_question, mock_retriever, mock_prompt, mock_llm, mock_flag_reranker
+    )
 
     # Assert
     mock_retriever.invoke.assert_called_once_with(mock_question)
-    mock_reranker_instance.compute_score.assert_called_once()
+    mock_rerank_context.assert_called_once_with(
+        mock_documents, mock_question, mock_flag_reranker, mock_prompt, mock_llm
+    )
     mock_format_docs.assert_called_once_with(mock_documents)
     mock_rag_chain.invoke.assert_called_once_with(expected_input_data)
 
@@ -299,63 +316,7 @@ def test_process_question(mock_llm, mock_prompt_template, mock_parser, mock_form
         "{'source': 'doc2'}\nParis is the largest city in France."
     )
     assert context_string == expected_context_string
-    assert response == "Paris is the capital of France."
-
-
-@patch("sixchatbot.core.FlagReranker")
-@patch("sixchatbot.core.format_docs")
-@patch("sixchatbot.core.StrOutputParser")
-@patch("main.PromptTemplate")
-@patch("main.ChatOpenAI")
-def test_process_question_reranker_sorting(
-    mock_llm, mock_prompt_template, mock_parser, mock_format_docs, mock_flag_reranker
-):
-    """
-    Test the process_question function to ensure it correctly sorts the documents based on reranker scores.
-
-    Args:
-        mock_format_docs (MagicMock): Mock for format_docs function.
-        mock_flag_reranker (MagicMock): Mock for FlagReranker class.
-
-    Asserts:
-        The function sorts the documents correctly and returns the expected context string.
-    """
-    # Mock inputs
-    mock_question = "What is the capital of France?"
-    mock_retriever = MagicMock()
-    mock_prompt = mock_prompt_template.from_file.return_value
-    mock_documents = [
-        Document(page_content="Paris is the capital of France.", metadata={"source": "doc1"}),
-        Document(page_content="Lyon is a city in France.", metadata={"source": "doc2"}),
-        Document(page_content="Marseille is a port city in France.", metadata={"source": "doc3"}),
-    ]
-
-    mock_retriever.invoke.return_value = mock_documents
-
-    # Mock the reranker behavior
-    mock_reranker_instance = mock_flag_reranker.return_value
-    mock_reranker_instance.compute_score.return_value = [0.5, 0.9, 0.7]
-
-    mock_format_docs.return_value = "Formatted documents."
-
-    # Mock the RAG chain behavior
-    mock_rag_chain = mock_prompt | mock_llm | mock_parser
-    mock_rag_chain.invoke.return_value = "Paris is the capital of France."
-
-    # Act
-    context_string, response = process_question(mock_question, mock_retriever, mock_prompt, mock_llm)
-
-    # Assert
-    mock_retriever.invoke.assert_called_once_with(mock_question)
-    mock_reranker_instance.compute_score.assert_called_once()
-
-    expected_context_string = (
-        "{'source': 'doc2'}\nLyon is a city in France.\n\n"
-        "{'source': 'doc3'}\nMarseille is a port city in France.\n\n"
-        "{'source': 'doc1'}\nParis is the capital of France."
-    )
-    assert context_string == expected_context_string
-    assert response == "Paris is the capital of France."
+    assert response == mock_rag_chain_response
 
 
 @pytest.mark.asyncio

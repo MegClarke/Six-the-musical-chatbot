@@ -41,6 +41,6 @@ from .core import (
     process_question,
     process_question_async,
 )
-from .helper import persist_directory_exists, get_files, get_documents
+from .helper import persist_directory_exists, get_json_files, get_documents
 from .gsheets import QADatabase
 from .schema import Config

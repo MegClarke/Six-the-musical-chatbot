@@ -13,11 +13,13 @@ import main
 @patch("main.load_dotenv")
 @patch("main.PromptTemplate")
 @patch("main.ChatOpenAI")
+@patch("main.FlagReranker")
 @patch("main.sixchatbot.load_config")
 @patch("os.getenv")
 def test_main(
     mock_getenv,
     mock_load_config,
+    mock_flag_reranker,
     mock_chat_openai,
     mock_prompt_template,
     mock_load_dotenv,
@@ -32,12 +34,16 @@ def test_main(
     Args:
         mock_getenv (MagicMock): Mock for os.getenv function.
         mock_load_config (MagicMock): Mock for sixchatbot.load_config function.
+        mock_flag_reranker (MagicMock): Mock for FlagReranker class.
         mock_chat_openai (MagicMock): Mock for ChatOpenAI class.
         mock_prompt_template (MagicMock): Mock for PromptTemplate class.
         mock_load_dotenv (MagicMock): Mock for load_dotenv function.
         mock_get_retriever (MagicMock): Mock for sixchatbot.get_retriever function.
         mock_process_question (MagicMock): Mock for sixchatbot.process_question function.
         mock_qadb (MagicMock): Mock for sixchatbot.QADatabase class.
+
+    Asserts:
+        The function initializes components, processes questions, and interacts with Google Sheets correctly.
     """
     # Mock instances
     mock_getenv.side_effect = ["test_spreadsheet_id", "test_trial"]
@@ -49,6 +55,9 @@ def test_main(
 
     mock_llm_instance = MagicMock()
     mock_chat_openai.return_value = mock_llm_instance
+
+    mock_reranker_instance = MagicMock()
+    mock_flag_reranker.return_value = mock_reranker_instance
 
     mock_prompt_template_instance = MagicMock()
     mock_prompt_template.from_file.return_value = mock_prompt_template_instance
@@ -68,6 +77,7 @@ def test_main(
 
     mock_get_retriever.assert_called_once_with(config=mock_config)
     mock_chat_openai.assert_called_once_with(model_name=mock_config.llm.model, temperature=mock_config.llm.temp)
+    mock_flag_reranker.assert_called_once_with(model_name_or_path=mock_config.reranker.model, use_fp16=True)
     mock_prompt_template.from_file.assert_called_once_with(mock_config.llm.prompt)
 
     mock_qadb.assert_called_once_with(spreadsheet_id="test_spreadsheet_id", sheet_name="test_trial")
@@ -76,10 +86,10 @@ def test_main(
     # Ensure process_question was called for each question
     assert mock_process_question.call_count == 2
     mock_process_question.assert_any_call(
-        "Question 1", mock_retriever_instance, mock_prompt_template_instance, mock_llm_instance
+        "Question 1", mock_retriever_instance, mock_prompt_template_instance, mock_llm_instance, mock_reranker_instance
     )
     mock_process_question.assert_any_call(
-        "Question 2", mock_retriever_instance, mock_prompt_template_instance, mock_llm_instance
+        "Question 2", mock_retriever_instance, mock_prompt_template_instance, mock_llm_instance, mock_reranker_instance
     )
 
     # Ensure post_chunks and post_answers were called with the correct data
@@ -112,6 +122,9 @@ async def test_query_chatbot(
         mock_load_dotenv (MagicMock): Mock for load_dotenv function.
         mock_get_retriever (MagicMock): Mock for sixchatbot.get_retriever function.
         mock_process_question_async (AsyncMock): Mock for sixchatbot.process_question_async function.
+
+    Asserts:
+        The function initializes components and processes a question correctly.
     """
     # Mock instances
     mock_config = MagicMock()
