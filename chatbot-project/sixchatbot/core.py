@@ -118,7 +118,7 @@ def process_question(
         tuple[str, str]: A tuple containing the retrieved context (chunks) and the generated response of the query.
     """
     context = retriever.invoke(question)
-    context = rerank_context(context, question, reranker, prompt, llm)
+    context = rerank_context(context, question, reranker)
 
     context_string = ""
     context_string = "\n\n".join(f"{str(chunk.metadata)}\n{chunk.page_content[:300]}" for chunk in context)
