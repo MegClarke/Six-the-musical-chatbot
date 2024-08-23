@@ -10,10 +10,11 @@ client = TestClient(app)
 
 
 def test_root_endpoint():
-    """Test the root endpoint."""
+    """Test the root endpoint to ensure it redirects to the Swagger documentation."""
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"message": "Hello World"}
+    assert response.headers["content-type"] == "text/html; charset=utf-8"
+    assert b"Swagger UI" in response.content
 
 
 def test_health_endpoint():

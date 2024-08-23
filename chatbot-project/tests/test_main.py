@@ -102,10 +102,12 @@ def test_main(
 @patch("main.load_dotenv")
 @patch("main.PromptTemplate")
 @patch("main.ChatOpenAI")
+@patch("main.FlagReranker")
 @patch("main.sixchatbot.load_config")
 @pytest.mark.asyncio
 async def test_query_chatbot(
     mock_load_config,
+    mock_flag_reranker,
     mock_chat_openai,
     mock_prompt_template,
     mock_load_dotenv,
@@ -136,6 +138,9 @@ async def test_query_chatbot(
     mock_llm_instance = MagicMock()
     mock_chat_openai.return_value = mock_llm_instance
 
+    mock_reranker_instance = MagicMock()
+    mock_flag_reranker.return_value = mock_reranker_instance
+
     mock_prompt_template_instance = MagicMock()
     mock_prompt_template.from_file.return_value = mock_prompt_template_instance
 
@@ -156,12 +161,14 @@ async def test_query_chatbot(
     mock_load_dotenv.assert_called_once()
     mock_load_config.assert_called_once()
     mock_get_retriever.assert_called_once_with(config=mock_config)
-    mock_chat_openai.assert_called_once_with(
-        model_name=mock_config.llm.model, temperature=mock_config.llm.temp, streaming=True
-    )
+    mock_chat_openai.assert_called_once_with(model_name=mock_config.llm.model, temperature=mock_config.llm.temp)
     mock_prompt_template.from_file.assert_called_once_with(mock_config.llm.prompt)
     mock_process_question_async.assert_called_once_with(
-        "Test question", mock_retriever_instance, mock_prompt_template_instance, mock_llm_instance
+        "Test question",
+        mock_retriever_instance,
+        mock_prompt_template_instance,
+        mock_llm_instance,
+        mock_reranker_instance,
     )
 
     # Check the streamed response chunks

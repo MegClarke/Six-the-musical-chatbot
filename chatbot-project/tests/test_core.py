@@ -167,7 +167,7 @@ def test_update_vector_store_adds_documents(
         create_collection_if_not_exists=False,
     )
     mock_vector_store.add_documents.assert_called_once_with(mock_documents)
-    mock_embeddings.assert_called_once_with(model="text-embedding-ada-002")
+    mock_embeddings.assert_called_once_with(model=mock_config.chroma.embedding_model)
 
 
 @patch("sixchatbot.core.get_json_files", return_value=["file1.txt", "file2.txt"])
@@ -305,9 +305,7 @@ def test_process_question(
 
     # Assert
     mock_retriever.invoke.assert_called_once_with(mock_question)
-    mock_rerank_context.assert_called_once_with(
-        mock_documents, mock_question, mock_flag_reranker, mock_prompt, mock_llm
-    )
+    mock_rerank_context.assert_called_once_with(mock_documents, mock_question, mock_flag_reranker)
     mock_format_docs.assert_called_once_with(mock_documents)
     mock_rag_chain.invoke.assert_called_once_with(expected_input_data)
 
@@ -321,9 +319,10 @@ def test_process_question(
 
 @pytest.mark.asyncio
 @patch("sixchatbot.core.FlagReranker")
+@patch("sixchatbot.core.rerank_context")
 @patch("sixchatbot.core.format_docs")
 @patch("main.ChatOpenAI")
-async def test_process_question_async(mock_llm, mock_format_docs, mock_flag_reranker):
+async def test_process_question_async(mock_llm, mock_format_docs, mock_rerank_context, mock_flag_reranker):
     """
     Test the process_question_async function to ensure it processes a question correctly and streams the response.
 
@@ -342,9 +341,7 @@ async def test_process_question_async(mock_llm, mock_format_docs, mock_flag_rera
     ]
     mock_retriever.invoke.return_value = mock_documents
 
-    # Mock the reranker behavior
-    mock_reranker_instance = mock_flag_reranker.return_value
-    mock_reranker_instance.compute_score.return_value = [0.9, 0.8]
+    mock_rerank_context.return_value = mock_documents
 
     mock_format_docs.return_value = "Formatted documents."
 
@@ -356,7 +353,9 @@ async def test_process_question_async(mock_llm, mock_format_docs, mock_flag_rera
     )
 
     # Act
-    response_generator = process_question_async(mock_question, mock_retriever, mock_prompt, mock_llm_instance)
+    response_generator = process_question_async(
+        mock_question, mock_retriever, mock_prompt, mock_llm_instance, mock_flag_reranker
+    )
 
     # Collect the streamed response
     response_chunks = []
@@ -365,7 +364,7 @@ async def test_process_question_async(mock_llm, mock_format_docs, mock_flag_rera
 
     # Assertions to verify correct calls
     mock_retriever.invoke.assert_called_once_with(mock_question)
-    mock_reranker_instance.compute_score.assert_called_once()
+    mock_rerank_context.assert_called_once_with(mock_documents, mock_question, mock_flag_reranker)
     mock_format_docs.assert_called_once_with(mock_documents)
     mock_llm_instance.astream.assert_called_once()
 
@@ -374,9 +373,12 @@ async def test_process_question_async(mock_llm, mock_format_docs, mock_flag_rera
 
 @pytest.mark.asyncio
 @patch("sixchatbot.core.FlagReranker")
+@patch("sixchatbot.core.rerank_context")
 @patch("sixchatbot.core.format_docs")
 @patch("main.ChatOpenAI")
-async def test_process_question_async_reranker_sorting(mock_llm, mock_format_docs, mock_flag_reranker):
+async def test_process_question_async_reranker_sorting(
+    mock_llm, mock_format_docs, mock_rerank_context, mock_flag_reranker
+):
     """
     Test the process_question_async function to ensure it correctly sorts the documents based on reranker scores.
 
@@ -396,9 +398,7 @@ async def test_process_question_async_reranker_sorting(mock_llm, mock_format_doc
     ]
     mock_retriever.invoke.return_value = mock_documents
 
-    # Mock the reranker behavior
-    mock_reranker_instance = mock_flag_reranker.return_value
-    mock_reranker_instance.compute_score.return_value = [0.5, 0.9, 0.7]
+    mock_rerank_context.return_value = mock_documents
 
     mock_format_docs.return_value = "Formatted documents."
 
@@ -410,7 +410,9 @@ async def test_process_question_async_reranker_sorting(mock_llm, mock_format_doc
     )
 
     # Act
-    response_generator = process_question_async(mock_question, mock_retriever, mock_prompt, mock_llm_instance)
+    response_generator = process_question_async(
+        mock_question, mock_retriever, mock_prompt, mock_llm_instance, mock_flag_reranker
+    )
 
     # Collect the streamed response
     response_chunks = []
@@ -419,6 +421,5 @@ async def test_process_question_async_reranker_sorting(mock_llm, mock_format_doc
 
     # Assertions to verify correct calls
     mock_retriever.invoke.assert_called_once_with(mock_question)
-    mock_reranker_instance.compute_score.assert_called_once()
-
+    mock_rerank_context.assert_called_once_with(mock_documents, mock_question, mock_flag_reranker)
     assert response_chunks == ["Lyon is a city in France."]
