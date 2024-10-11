@@ -11,6 +11,7 @@ Welcome to the GDPLabs AI/Machine Learning Projects repository! This repository 
    - Running
    - Testing
 - Six the Musical Chatbot
+- Computer Vision Exploration
 
 
 ## Overview
@@ -54,3 +55,8 @@ This project involves exploring and attempting to solve the Kaggle Titanic compe
 ### Six the Musical Chatbot
 
 A RAG-based chatbot project focused on "Six the Musical". The chatbot is designed to answer questions and provide information about the musical. This project involves large language models (LLMs), vector stores, text embedding, and other RAG techniques. See chatbot-project/README.md for more detailed set-up and build intructions.
+
+
+### Computer Vision Exploration
+
+This was a short project focused on exploring the Fashion-MNIST database with the pytorch resnet34 model. I played around with different models, optimizers, schedulers, and other paramaters.
