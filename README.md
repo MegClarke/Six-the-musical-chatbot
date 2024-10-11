@@ -59,4 +59,4 @@ A RAG-based chatbot project focused on "Six the Musical". The chatbot is designe
 
 ### Computer Vision Exploration
 
-This was a short project focused on exploring the Fashion-MNIST database with the pytorch resnet34 model. I played around with different models, optimizers, schedulers, and other paramaters.
+This was a short project focused on exploring the Fashion-MNIST dataset with the pytorch resnet34 model. I played around with different models, optimizers, schedulers, and other paramaters.
